@@ -12,7 +12,6 @@
 
 # Package Files #
 <<<<<<< HEAD
-<<<<<<< HEAD
 *.jar
 *.war
 *.nar
@@ -23,11 +22,6 @@
 *.nar
 *.ear
 >>>>>>> e7f7e2c (UwU)
-=======
-*.war
-*.nar
-*.ear
->>>>>>> e7b1dde9d663c728a1ea63266e41a22ddd0a1e61
 *.tar.gz
 *.rar
 
@@ -35,10 +29,7 @@
 hs_err_pid*
 replay_pid*
 <<<<<<< HEAD
-<<<<<<< HEAD
 =======
-=======
->>>>>>> e7b1dde9d663c728a1ea63266e41a22ddd0a1e61
 
 .idea
 .gradle
@@ -46,9 +37,5 @@ replay_pid*
 run
 *.iml
 out
-<<<<<<< HEAD
 build
 >>>>>>> e7f7e2c (UwU)
-=======
-build
->>>>>>> e7b1dde9d663c728a1ea63266e41a22ddd0a1e61

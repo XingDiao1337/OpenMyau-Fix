@@ -27,11 +27,6 @@ import net.minecraft.network.play.server.S19PacketEntityStatus;
 import net.minecraft.network.play.server.S27PacketExplosion;
 import net.minecraft.potion.Potion;
 
-<<<<<<< HEAD
-=======
-import java.util.Objects;
-
->>>>>>> e7b1dde9d663c728a1ea63266e41a22ddd0a1e61
 public class Velocity extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
 
@@ -51,12 +46,9 @@ public class Velocity extends Module {
     public static boolean extraAttacked = false;
     public static boolean velocityAttacked = false;
 
-<<<<<<< HEAD
     private boolean shouldJump = false;
     private int jumpCooldown = 0;
 
-=======
->>>>>>> e7b1dde9d663c728a1ea63266e41a22ddd0a1e61
     public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"VANILLA", "JUMP", "HYPIXEL"});
 
     public final PercentProperty chance = new PercentProperty("chance", 100, () -> mode.getValue() == 0);
@@ -128,13 +120,7 @@ public class Velocity extends Module {
                         }
                     }
                 } else if (this.mode.getValue() == 1) {
-<<<<<<< HEAD
                     this.jumpFlag = true;
-=======
-                    if (event.getY() > 0.0) {
-                        this.jumpFlag = true;
-                    }
->>>>>>> e7b1dde9d663c728a1ea63266e41a22ddd0a1e61
                 } else if (this.mode.getValue() == 2) {
                     if (this.rotate.getValue() && event.getY() > 0.0) {
                         this.knockbackX = event.getX();
@@ -158,11 +144,7 @@ public class Velocity extends Module {
             this.handleJumpReset();
         }
 
-<<<<<<< HEAD
         if (this.mode.getValue() == 0) {
-=======
-        if (this.mode.getValue() == 0 || this.mode.getValue() == 1) {
->>>>>>> e7b1dde9d663c728a1ea63266e41a22ddd0a1e61
             return;
         }
 
@@ -192,19 +174,11 @@ public class Velocity extends Module {
 
     @EventTarget
     public void onLivingUpdate(LivingUpdateEvent event) {
-<<<<<<< HEAD
         if (this.isEnabled() && this.jumpFlag && this.mode.getValue() == 1) {
             this.jumpFlag = false;
             if (mc.thePlayer.onGround && mc.thePlayer.isSprinting() && !mc.thePlayer.isPotionActive(Potion.jump) && !this.isInLiquidOrWeb()) {
                 mc.thePlayer.movementInput.jump = true;
             }
-=======
-        if (this.isEnabled() && this.jumpFlag) {
-            if (mc.thePlayer.onGround && MoveUtil.isForwardPressed() && !mc.thePlayer.isPotionActive(Potion.jump) && !this.isInLiquidOrWeb()) {
-                mc.thePlayer.movementInput.jump = true;
-            }
-            this.jumpFlag = false;
->>>>>>> e7b1dde9d663c728a1ea63266e41a22ddd0a1e61
         }
     }
 
@@ -279,7 +253,6 @@ public class Velocity extends Module {
                 }
             }
         }
-<<<<<<< HEAD
 
         if (event.getType() == EventType.POST && this.mode.getValue() == 1) {
             int hurtTime = mc.thePlayer.hurtTime;
@@ -300,8 +273,6 @@ public class Velocity extends Module {
                 jumpCooldown--;
             }
         }
-=======
->>>>>>> e7b1dde9d663c728a1ea63266e41a22ddd0a1e61
     }
 
     @EventTarget
@@ -381,11 +352,8 @@ public class Velocity extends Module {
         this.ticksSinceVelocity = -1;
         extraAttacked = false;
         velocityAttacked = false;
-<<<<<<< HEAD
         this.shouldJump = false;
         this.jumpCooldown = 0;
-=======
->>>>>>> e7b1dde9d663c728a1ea63266e41a22ddd0a1e61
     }
 
     @Override
@@ -401,11 +369,8 @@ public class Velocity extends Module {
         this.ticksSinceVelocity = -1;
         extraAttacked = false;
         velocityAttacked = false;
-<<<<<<< HEAD
         this.shouldJump = false;
         this.jumpCooldown = 0;
-=======
->>>>>>> e7b1dde9d663c728a1ea63266e41a22ddd0a1e61
     }
 
     @Override
