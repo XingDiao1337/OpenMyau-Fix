@@ -5,11 +5,12 @@ import myau.module.Module;
 import myau.module.modules.HUD;
 import myau.property.Property;
 import myau.property.properties.*;
+import myau.ui.ClickGui;
 import myau.ui.Component;
 import myau.ui.dataset.impl.FloatSlider;
 import myau.ui.dataset.impl.IntSlider;
 import myau.ui.dataset.impl.PercentageSlider;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.Gui;
 import org.lwjgl.opengl.GL11;
 
@@ -94,7 +95,8 @@ public class ModuleComponent implements Component {
         } else {
             textColor = new Color(102, 102, 102).getRGB();
         }
-        Minecraft.getMinecraft().fontRendererObj.drawStringWithShadow(this.mod.getName(), (float) (this.category.getX() + this.category.getWidth() / 2 - Minecraft.getMinecraft().fontRendererObj.getStringWidth(this.mod.getName()) / 2), (float) (this.category.getY() + this.offsetY + 4), textColor);
+        FontRenderer fr = ClickGui.getInstance().getCurrentRenderer();
+        fr.drawStringWithShadow(this.mod.getName(), (float) (this.category.getX() + this.category.getWidth() / 2 - fr.getStringWidth(this.mod.getName()) / 2), (float) (this.category.getY() + this.offsetY + 4), textColor);
         if (this.panelExpand && !this.settings.isEmpty()) {
             for (Component c : this.settings) {
                 if (c.isVisible()) {

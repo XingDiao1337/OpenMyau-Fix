@@ -2,8 +2,9 @@ package myau.ui.components;
 
 import myau.enums.ChatColors;
 import myau.property.properties.ModeProperty;
+import myau.ui.ClickGui;
 import myau.ui.Component;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.FontRenderer;
 import org.lwjgl.opengl.GL11;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -28,9 +29,10 @@ public class ModeComponent implements Component {
         GL11.glScaled(0.5D, 0.5D, 0.5D);
         String mode = this.property.getModeString();
         mode = mode.replace("_", " ");
-        int bruhWidth = (int) (Minecraft.getMinecraft().fontRendererObj.getStringWidth(this.property.getName() + ": ") * 0.5);
-        Minecraft.getMinecraft().fontRendererObj.drawString(this.property.getName() + ": ", (float) ((this.parentModule.category.getX() + 4) * 2), (float) ((this.parentModule.category.getY() + this.offsetY + 4) * 2), 0xffffffff, true);
-        Minecraft.getMinecraft().fontRendererObj.drawString(ChatColors.formatColor("&9" + mode.substring(0, 1).toUpperCase() + mode.substring(1).toLowerCase()), (float) ((this.parentModule.category.getX() + 4 + bruhWidth) * 2), (float) ((this.parentModule.category.getY() + this.offsetY + 4) * 2), -1, true);
+        FontRenderer fr = ClickGui.getInstance().getCurrentRenderer();
+        int bruhWidth = (int) (fr.getStringWidth(this.property.getName() + ": ") * 0.5);
+        fr.drawString(this.property.getName() + ": ", (float) ((this.parentModule.category.getX() + 4) * 2), (float) ((this.parentModule.category.getY() + this.offsetY + 4) * 2), 0xffffffff, true);
+        fr.drawString(ChatColors.formatColor("&9" + mode.substring(0, 1).toUpperCase() + mode.substring(1).toLowerCase()), (float) ((this.parentModule.category.getX() + 4 + bruhWidth) * 2), (float) ((this.parentModule.category.getY() + this.offsetY + 4) * 2), -1, true);
         GL11.glPopMatrix();
     }
 
@@ -61,12 +63,10 @@ public class ModeComponent implements Component {
 
     @Override
     public void mouseReleased(int x, int y, int button) {
-
     }
 
     @Override
     public void keyTyped(char chatTyped, int keyCode) {
-
     }
 
     private boolean isHovered(int x, int y) {

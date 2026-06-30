@@ -4,10 +4,12 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import myau.Myau;
+import myau.font.UFontRenderer;
 import myau.module.Module;
 import myau.module.modules.*;
 import myau.ui.components.BindComponent;
 import myau.ui.components.CategoryComponent;
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiScreen;
 import org.lwjgl.input.Mouse;
 
@@ -23,6 +25,9 @@ public class ClickGui extends GuiScreen {
     private static ClickGui instance;
     private final File configFile = new File("./config/Myau/", "clickgui.txt");
     private final ArrayList<CategoryComponent> categoryList;
+
+    private UFontRenderer modernFontRenderer;
+    private FontRenderer currentRenderer;
 
     public ClickGui() {
         instance = this;
@@ -161,18 +166,49 @@ public class ClickGui extends GuiScreen {
         return instance;
     }
 
+    public FontRenderer getCurrentRenderer() {
+        return currentRenderer;
+    }
+
+    private FontRenderer getFontRenderer() {
+        GuiModule guiModule = (GuiModule) Myau.moduleManager.getModule(GuiModule.class);
+        if (guiModule != null && guiModule.modernFont.getValue()) {
+            if (modernFontRenderer == null) {
+                try {
+                    modernFontRenderer = new UFontRenderer("GoogleSans-Regular", 18);
+                } catch (Exception e) {
+                    modernFontRenderer = null;
+                }
+            }
+            if (modernFontRenderer != null) {
+                return modernFontRenderer;
+            }
+        } else {
+            modernFontRenderer = null;
+        }
+        return mc.fontRendererObj;
+    }
+
+    private int getFontHeight() {
+        return getFontRenderer().FONT_HEIGHT;
+    }
+
+    @Override
     public void initGui() {
         super.initGui();
     }
 
+    @Override
     public void drawScreen(int x, int y, float p) {
         drawRect(0, 0, this.width, this.height, new Color(0, 0, 0, 100).getRGB());
 
-        mc.fontRendererObj.drawStringWithShadow("Myau " + Myau.version, 4, this.height - 3 - mc.fontRendererObj.FONT_HEIGHT * 2, new Color(60, 162, 253).getRGB());
-        mc.fontRendererObj.drawStringWithShadow("dev, ksyz", 4, this.height - 3 - mc.fontRendererObj.FONT_HEIGHT, new Color(60, 162, 253).getRGB());
+        currentRenderer = getFontRenderer();
+
+        currentRenderer.drawStringWithShadow("Myau " + Myau.version, 4, this.height - 3 - currentRenderer.FONT_HEIGHT * 2, new Color(60, 162, 253).getRGB());
+        currentRenderer.drawStringWithShadow("dev, ksyz", 4, this.height - 3 - currentRenderer.FONT_HEIGHT, new Color(60, 162, 253).getRGB());
 
         for (CategoryComponent category : categoryList) {
-            category.render(this.fontRendererObj);
+            category.render(currentRenderer);
             category.handleDrag(x, y);
 
             for (Component module : category.getModules()) {
@@ -189,6 +225,7 @@ public class ClickGui extends GuiScreen {
         }
     }
 
+    @Override
     public void mouseClicked(int x, int y, int mouseButton) {
         for (CategoryComponent category : categoryList) {
             category.updateAllOffsets();
@@ -226,6 +263,7 @@ public class ClickGui extends GuiScreen {
         }
     }
 
+    @Override
     public void mouseReleased(int x, int y, int mouseButton) {
         for (CategoryComponent category : categoryList) {
             category.updateAllOffsets();
@@ -260,10 +298,10 @@ public class ClickGui extends GuiScreen {
         }
     }
 
+    @Override
     public void keyTyped(char typedChar, int key) {
         boolean hasBinding = false;
         for (CategoryComponent cat : categoryList) {
-            if (!cat.isOpened()) continue;
             for (Component comp : cat.getModules()) {
                 if (comp instanceof BindComponent && ((BindComponent) comp).isBinding) {
                     hasBinding = true;
@@ -275,7 +313,6 @@ public class ClickGui extends GuiScreen {
 
         if (hasBinding) {
             for (CategoryComponent cat : categoryList) {
-                if (!cat.isOpened()) continue;
                 for (Component comp : cat.getModules()) {
                     comp.keyTyped(typedChar, key);
                 }
@@ -294,10 +331,12 @@ public class ClickGui extends GuiScreen {
         }
     }
 
+    @Override
     public void onGuiClosed() {
         savePositions();
     }
 
+    @Override
     public boolean doesGuiPauseGame() {
         return false;
     }

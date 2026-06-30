@@ -20,7 +20,6 @@ public class Timer extends Module {
     private static final long cooldown = 100;
     private static long lastTime = 0;
 
-    // 删除了 Mode，只保留 Speed
     public final FloatProperty speed = new FloatProperty("Speed", 1.0F, 0.0F, 10.0F);
 
     private boolean lastTimerKeyPressed = false;
@@ -45,7 +44,6 @@ public class Timer extends Module {
         }
         lastTimerKeyPressed = true;
 
-        // 如果 Speed 为 0，立即启用 Zero 模式
         if (speed.getValue() == 0.0F) {
             net.minecraft.util.Timer timer = ((IAccessorMinecraft) mc).getTimer();
             if (timer != null) {
@@ -60,7 +58,6 @@ public class Timer extends Module {
         lastTime = System.currentTimeMillis();
         net.minecraft.util.Timer timer = ((IAccessorMinecraft) mc).getTimer();
 
-        // 如果之前在 Zero 模式，恢复键盘状态（原有逻辑）
         if (speed.getValue() == 0.0F) {
             if (Keyboard.isCreated()) {
                 while (Keyboard.next()) {
@@ -79,7 +76,6 @@ public class Timer extends Module {
             timer.timerSpeed = 1.0F;
         }
 
-        // 如果是在 Zero 模式或 Speed 为 0，关闭 Blink 并恢复运动
         if (speed.getValue() == 0.0F) {
             Myau.blinkManager.setBlinkState(false, BlinkModules.BLINK);
             if (mc.thePlayer != null) {
@@ -96,7 +92,6 @@ public class Timer extends Module {
             return;
         }
 
-        // Zero 模式（Speed == 0）不做任何 Timer 修改（已在 onEnabled 中设置），但为防止被其他模块修改，可再次检查
         if (speed.getValue() == 0.0F) {
             return;
         }
@@ -104,7 +99,6 @@ public class Timer extends Module {
         net.minecraft.util.Timer timer = ((IAccessorMinecraft) mc).getTimer();
         if (timer == null) return;
 
-        // 正常模式
         timer.timerSpeed = speed.getValue();
     }
 
@@ -112,8 +106,7 @@ public class Timer extends Module {
     public void onLivingUpdate(LivingUpdateEvent event) {
         if (!isEnabled()) return;
 
-        // Zero 模式下冻结玩家运动
-        if (speed.getValue() == 0.0F) {
+       if (speed.getValue() == 0.0F) {
             mc.thePlayer.motionX = 0.0;
             mc.thePlayer.motionY = 0.0;
             mc.thePlayer.motionZ = 0.0;
@@ -182,9 +175,6 @@ public class Timer extends Module {
 
     @Override
     public String[] getSuffix() {
-        if (speed.getValue() == 0.0F) {
-            return new String[]{"Zero"};
-        }
         return new String[]{String.format("%.1fx", speed.getValue())};
     }
 }

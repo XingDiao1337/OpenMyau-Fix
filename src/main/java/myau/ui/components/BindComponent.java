@@ -3,12 +3,11 @@ package myau.ui.components;
 import myau.Myau;
 import myau.module.modules.GuiModule;
 import myau.module.modules.HUD;
+import myau.ui.ClickGui;
 import myau.ui.Component;
 import myau.ui.dataset.BindStage;
 import myau.util.KeyBindUtil;
-import net.minecraft.client.Minecraft;
-import org.lwjgl.input.Keyboard;
-import org.lwjgl.input.Mouse;
+import net.minecraft.client.gui.FontRenderer;
 import org.lwjgl.opengl.GL11;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,7 +35,6 @@ public class BindComponent implements Component {
     }
 
     public void update(int mousePosX, int mousePosY) {
-        boolean h = this.isHovered(mousePosX, mousePosY);
         this.y = this.parentModule.category.getY() + this.offsetY;
         this.x = this.parentModule.category.getX();
     }
@@ -96,6 +94,7 @@ public class BindComponent implements Component {
     }
 
     private void renderText(String s, int color) {
-        Minecraft.getMinecraft().fontRendererObj.drawStringWithShadow(s, (float) ((this.parentModule.category.getX() + 4) * 2), (float) ((this.parentModule.category.getY() + this.offsetY + 3) * 2), color);
+        FontRenderer fr = ClickGui.getInstance().getCurrentRenderer();
+        fr.drawStringWithShadow(s, (float) ((this.parentModule.category.getX() + 4) * 2), (float) ((this.parentModule.category.getY() + this.offsetY + 3) * 2), color);
     }
 }

@@ -1,10 +1,10 @@
-
 package myau.ui.components;
 
 import myau.enums.ChatColors;
 import myau.property.properties.BooleanProperty;
+import myau.ui.ClickGui;
 import myau.ui.Component;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.FontRenderer;
 import org.lwjgl.opengl.GL11;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -28,7 +28,8 @@ public class CheckBoxComponent implements Component {
     public void draw(AtomicInteger offset) {
         GL11.glPushMatrix();
         GL11.glScaled(0.5D, 0.5D, 0.5D);
-        Minecraft.getMinecraft().fontRendererObj.drawString(this.property.getName().replace("-", " ") + ": " + ChatColors.formatColor(this.property.formatValue()), (float) ((this.module.category.getX() + 4) * 2), (float) ((this.module.category.getY() + this.offsetY + 5) * 2), -1, false);
+        FontRenderer fr = ClickGui.getInstance().getCurrentRenderer();
+        fr.drawString(this.property.getName().replace("-", " ") + ": " + ChatColors.formatColor(this.property.formatValue()), (float) ((this.module.category.getX() + 4) * 2), (float) ((this.module.category.getY() + this.offsetY + 5) * 2), -1, false);
         GL11.glPopMatrix();
     }
 
@@ -50,23 +51,19 @@ public class CheckBoxComponent implements Component {
         if (this.isHovered(x, y) && button == 0 && this.module.panelExpand) {
             this.property.setValue(!this.property.getValue());
         }
-
     }
 
     @Override
     public void mouseReleased(int x, int y, int button) {
-
     }
 
     @Override
     public void keyTyped(char chatTyped, int keyCode) {
-
     }
 
     public boolean isHovered(int x, int y) {
         return x > this.x && x < this.x + this.module.category.getWidth() && y > this.y && y < this.y + 11;
     }
-
 
     @Override
     public boolean isVisible() {

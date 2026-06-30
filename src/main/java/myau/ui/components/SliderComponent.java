@@ -1,4 +1,3 @@
-
 package myau.ui.components;
 
 import myau.Myau;
@@ -7,7 +6,7 @@ import myau.ui.ClickGui;
 import myau.ui.Component;
 import myau.ui.callback.GuiInput;
 import myau.ui.dataset.Slider;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.Gui;
 import org.lwjgl.opengl.GL11;
 
@@ -26,12 +25,18 @@ public class SliderComponent implements Component {
     private long increment = 0;
     private long decrement = 0;
 
+    private double currentValue;
+    private double targetValue;
+    private static final float SMOOTH_SPEED = 0.35f;
+
     public SliderComponent(Slider slider, ModuleComponent parentModule, int offsetY) {
         this.slider = slider;
         this.parentModule = parentModule;
         this.x = parentModule.category.getX() + parentModule.category.getWidth();
         this.y = parentModule.category.getY() + parentModule.offsetY;
         this.offsetY = offsetY;
+        this.currentValue = slider.getInput();
+        this.targetValue = currentValue;
     }
 
     public void draw(AtomicInteger offset) {
@@ -44,7 +49,8 @@ public class SliderComponent implements Component {
         Gui.drawRect(sliderStart, this.parentModule.category.getY() + this.offsetY + 11, sliderEnd, this.parentModule.category.getY() + this.offsetY + 15, ((HUD) Myau.moduleManager.modules.get(HUD.class)).getColor(System.currentTimeMillis(), offset.get()).getRGB());
         GL11.glPushMatrix();
         GL11.glScaled(0.5D, 0.5D, 0.5D);
-        Minecraft.getMinecraft().fontRendererObj.drawStringWithShadow(this.slider.getName() + ": " + this.slider.getValueColorString(), (float) ((int) ((float) (this.parentModule.category.getX() + 4) * 2.0F)), (float) ((int) ((float) (this.parentModule.category.getY() + this.offsetY + 3) * 2.0F)), -1);
+        FontRenderer fr = ClickGui.getInstance().getCurrentRenderer();
+        fr.drawStringWithShadow(this.slider.getName() + ": " + this.slider.getValueColorString(), (float) ((int) ((float) (this.parentModule.category.getX() + 4) * 2.0F)), (float) ((int) ((float) (this.parentModule.category.getY() + this.offsetY + 3) * 2.0F)), -1);
         GL11.glPopMatrix();
     }
 
@@ -61,38 +67,47 @@ public class SliderComponent implements Component {
         this.y = this.parentModule.category.getY() + this.offsetY;
         this.x = this.parentModule.category.getX();
 
-        double d = Math.min(this.parentModule.category.getWidth() - 8, Math.max(0, mousePosX - this.x));
-        this.sliderWidth = (double) (this.parentModule.category.getWidth() - 8) *
-                (this.slider.getInput() - this.slider.getMin()) /
-                (this.slider.getMax() - this.slider.getMin());
-
         if (this.dragging) {
+            double d = Math.min(this.parentModule.category.getWidth() - 8, Math.max(0, mousePosX - this.x));
             if (d == 0.0D) {
-                this.slider.setValue(this.slider.getMin());
+                this.targetValue = this.slider.getMin();
             } else {
                 double rawValue = d / (double) (this.parentModule.category.getWidth() - 8)
                         * (this.slider.getMax() - this.slider.getMin())
                         + this.slider.getMin();
-
                 double increment = this.slider.getIncrement();
                 if (increment > 0) {
                     rawValue = Math.round(rawValue / increment) * increment;
                 }
                 double n = roundToPrecision(rawValue, 2);
                 n = Math.max(this.slider.getMin(), Math.min(this.slider.getMax(), n));
-                this.slider.setValue(n);
+                this.targetValue = n;
+                this.slider.setValue(this.targetValue);
             }
         }
+
+        double diff = this.targetValue - this.currentValue;
+        if (Math.abs(diff) > 0.001) {
+            this.currentValue += diff * SMOOTH_SPEED;
+        } else {
+            this.currentValue = this.targetValue;
+        }
+
+        double range = this.slider.getMax() - this.slider.getMin();
+        double progress = range == 0 ? 0 : (this.currentValue - this.slider.getMin()) / range;
+        this.sliderWidth = (double) (this.parentModule.category.getWidth() - 8) * Math.max(0, Math.min(1, progress));
+
         if (this.increment != 0 && this.increment < System.currentTimeMillis()) {
             this.increment = System.currentTimeMillis() + 50;
             this.slider.stepping(true);
+            this.targetValue = this.slider.getInput();
         }
         if (this.decrement != 0 && this.decrement < System.currentTimeMillis()) {
             this.decrement = System.currentTimeMillis() + 50;
             this.slider.stepping(false);
+            this.targetValue = this.slider.getInput();
         }
     }
-
 
     private static double roundToPrecision(double v, int precision) {
         if (precision < 0) {
@@ -106,28 +121,39 @@ public class SliderComponent implements Component {
 
     public void mouseDown(int x, int y, int button) {
         if (this.isTextHovered(x, y) && button == 0 && this.parentModule.panelExpand) {
-            GuiInput.prompt(slider.getName().replace("-", " "), slider.getValueString(), slider::setValueString, ClickGui.getInstance());
+            GuiInput.prompt(slider.getName().replace("-", " "), slider.getValueString(), value -> {
+                slider.setValueString(value);
+                this.targetValue = slider.getInput();
+                this.currentValue = this.targetValue;
+            }, ClickGui.getInstance());
             return;
         }
 
         if (this.isLeftHalfHovered(x, y) && this.parentModule.panelExpand) {
             if (button == 0) {
                 this.dragging = true;
-            } else if(button == 1 && this.decrement == 0) {
+                this.targetValue = this.slider.getInput();
+                this.currentValue = this.targetValue;
+            } else if (button == 1 && this.decrement == 0) {
                 this.decrement = System.currentTimeMillis() + 500;
                 this.slider.stepping(false);
+                this.targetValue = this.slider.getInput();
+                this.currentValue = this.targetValue;
             }
         }
 
         if (this.isRightHalfHovered(x, y) && this.parentModule.panelExpand) {
             if (button == 0) {
                 this.dragging = true;
-            } else if(button == 1 && this.increment == 0) {
+                this.targetValue = this.slider.getInput();
+                this.currentValue = this.targetValue;
+            } else if (button == 1 && this.increment == 0) {
                 this.increment = System.currentTimeMillis() + 500;
                 this.slider.stepping(true);
+                this.targetValue = this.slider.getInput();
+                this.currentValue = this.targetValue;
             }
         }
-
     }
 
     public void mouseReleased(int x, int y, int button) {
@@ -138,7 +164,6 @@ public class SliderComponent implements Component {
 
     @Override
     public void keyTyped(char chatTyped, int keyCode) {
-
     }
 
     public boolean isTextHovered(int x, int y) {
@@ -152,7 +177,6 @@ public class SliderComponent implements Component {
     public boolean isRightHalfHovered(int x, int y) {
         return x > this.x + this.parentModule.category.getWidth() / 2 && x < this.x + this.parentModule.category.getWidth() && y > this.y + 8 && y < this.y + 16;
     }
-
 
     @Override
     public boolean isVisible() {

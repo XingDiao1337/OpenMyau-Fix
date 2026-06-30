@@ -4,7 +4,6 @@ import myau.Myau;
 import myau.event.EventTarget;
 import myau.event.types.EventType;
 import myau.events.TickEvent;
-import myau.events.SwapItemEvent;
 import myau.module.Module;
 import myau.util.ItemUtil;
 import myau.util.KeyBindUtil;
@@ -19,11 +18,9 @@ public class AutoTool extends Module {
     private int currentToolSlot = -1;
     private int previousSlot = -1;
     private int tickDelayCounter = 0;
-    private int clientSlot = -1;
     public final IntProperty switchDelay = new IntProperty("delay", 0, 0, 5);
     public final BooleanProperty switchBack = new BooleanProperty("switch-back", true);
     public final BooleanProperty sneakOnly = new BooleanProperty("sneak-only", true);
-    public final BooleanProperty itemSpoof = new BooleanProperty("item-spoof", false);
 
     public AutoTool() {
         super("AutoTool", false);
@@ -35,13 +32,13 @@ public class AutoTool extends Module {
         return TeamUtil.isEntityLoaded(killAura.getTarget()) && killAura.isAttackAllowed();
     }
 
-    public int getSlot() {
-        return this.clientSlot;
-    }
-
     @EventTarget
     public void onTick(TickEvent event) {
         if (this.isEnabled() && event.getType() == EventType.PRE) {
+            if (this.currentToolSlot != -1 && this.currentToolSlot != mc.thePlayer.inventory.currentItem) {
+                this.currentToolSlot = -1;
+                this.previousSlot = -1;
+            }
             if (mc.objectMouseOver != null
                     && mc.objectMouseOver.typeOfHit == MovingObjectType.BLOCK
                     && mc.gameSettings.keyBindAttack.isKeyDown()
@@ -52,53 +49,29 @@ public class AutoTool extends Module {
                     int slot = ItemUtil.findInventorySlot(
                             mc.thePlayer.inventory.currentItem, mc.theWorld.getBlockState(mc.objectMouseOver.getBlockPos()).getBlock()
                     );
-                    if (this.itemSpoof.getValue()) {
-                        if (this.clientSlot == -1) {
-                            this.clientSlot = mc.thePlayer.inventory.currentItem;
+                    if (mc.thePlayer.inventory.currentItem != slot) {
+                        if (this.previousSlot == -1) {
+                            this.previousSlot = mc.thePlayer.inventory.currentItem;
                         }
-                        if (mc.thePlayer.inventory.currentItem != slot) {
-                            mc.thePlayer.inventory.currentItem = slot;
-                        }
-                    } else {
-                        if (mc.thePlayer.inventory.currentItem != slot) {
-                            if (this.previousSlot == -1) {
-                                this.previousSlot = mc.thePlayer.inventory.currentItem;
-                            }
-                            mc.thePlayer.inventory.currentItem = slot;
-                        }
+                        mc.thePlayer.inventory.currentItem = this.currentToolSlot = slot;
                     }
                 }
                 this.tickDelayCounter++;
             } else {
-                if (this.itemSpoof.getValue() && this.clientSlot != -1) {
-                    mc.thePlayer.inventory.currentItem = this.clientSlot;
-                } else if (this.switchBack.getValue() && this.previousSlot != -1) {
+                if (this.switchBack.getValue() && this.previousSlot != -1) {
                     mc.thePlayer.inventory.currentItem = this.previousSlot;
                 }
                 this.currentToolSlot = -1;
                 this.previousSlot = -1;
-                this.clientSlot = -1;
                 this.tickDelayCounter = 0;
             }
         }
     }
 
-    @EventTarget
-    public void onSwap(SwapItemEvent event) {
-        if (this.isEnabled() && this.itemSpoof.getValue() && this.clientSlot != -1) {
-            this.clientSlot = event.setSlot(this.clientSlot);
-            event.setCancelled(true);
-        }
-    }
-
     @Override
     public void onDisabled() {
-        if (this.clientSlot != -1) {
-            mc.thePlayer.inventory.currentItem = this.clientSlot;
-        }
         this.currentToolSlot = -1;
         this.previousSlot = -1;
-        this.clientSlot = -1;
         this.tickDelayCounter = 0;
     }
 }

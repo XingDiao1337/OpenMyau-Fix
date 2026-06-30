@@ -1,6 +1,7 @@
 package myau.module.modules;
 
 import myau.module.Module;
+import myau.property.properties.BooleanProperty;
 import myau.ui.ClickGui;
 import net.minecraft.client.Minecraft;
 import org.lwjgl.input.Keyboard;
@@ -8,6 +9,8 @@ import org.lwjgl.input.Keyboard;
 public class GuiModule extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
     private ClickGui clickGui;
+
+    public final BooleanProperty modernFont = new BooleanProperty("Modern-Font", false);
 
     public GuiModule() {
         super("ClickGui", false);
