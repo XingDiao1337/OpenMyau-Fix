@@ -1,6 +1,7 @@
 package myau.util;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.play.INetHandlerPlayClient;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.S21PacketChunkData;
 import net.minecraft.network.play.server.S22PacketMultiBlockChange;
@@ -29,5 +30,16 @@ public class PacketUtil {
 
     public static void sendPacketNoEvent(Packet<?> packet) {
         mc.getNetHandler().getNetworkManager().sendPacket(packet, null);
+    }
+
+    public static void receivePacket(Packet<?> packet) {
+        if (packet == null) return;
+        try {
+            if (mc.getNetHandler() != null) {
+                ((Packet<INetHandlerPlayClient>) packet).processPacket(mc.getNetHandler());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

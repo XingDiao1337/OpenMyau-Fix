@@ -46,6 +46,7 @@ public class ClickGui extends GuiScreen {
         combatModules.add(Myau.moduleManager.getModule(HitBox.class));
         combatModules.add(Myau.moduleManager.getModule(MoreKB.class));
         combatModules.add(Myau.moduleManager.getModule(HitSelect.class));
+        combatModules.add(Myau.moduleManager.getModule(BackTrack.class));
 
         List<Module> movementModules = new ArrayList<>();
         movementModules.add(Myau.moduleManager.getModule(AntiAFK.class));
@@ -61,7 +62,6 @@ public class ClickGui extends GuiScreen {
         movementModules.add(Myau.moduleManager.getModule(Eagle.class));
         movementModules.add(Myau.moduleManager.getModule(NoJumpDelay.class));
         movementModules.add(Myau.moduleManager.getModule(AntiVoid.class));
-        movementModules.add(Myau.moduleManager.getModule(Stasis.class));
 
         List<Module> renderModules = new ArrayList<>();
         renderModules.add(Myau.moduleManager.getModule(ESP.class));
@@ -205,7 +205,7 @@ public class ClickGui extends GuiScreen {
         currentRenderer = getFontRenderer();
 
         currentRenderer.drawStringWithShadow("Myau " + Myau.version, 4, this.height - 3 - currentRenderer.FONT_HEIGHT * 2, new Color(60, 162, 253).getRGB());
-        currentRenderer.drawStringWithShadow("dev, ksyz", 4, this.height - 3 - currentRenderer.FONT_HEIGHT, new Color(60, 162, 253).getRGB());
+        currentRenderer.drawStringWithShadow("dev, &bMornly", 4, this.height - 3 - currentRenderer.FONT_HEIGHT, new Color(60, 162, 253).getRGB());
 
         for (CategoryComponent category : categoryList) {
             category.render(currentRenderer);

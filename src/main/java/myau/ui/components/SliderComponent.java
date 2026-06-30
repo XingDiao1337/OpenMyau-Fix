@@ -25,18 +25,12 @@ public class SliderComponent implements Component {
     private long increment = 0;
     private long decrement = 0;
 
-    private double currentValue;
-    private double targetValue;
-    private static final float SMOOTH_SPEED = 0.35f;
-
     public SliderComponent(Slider slider, ModuleComponent parentModule, int offsetY) {
         this.slider = slider;
         this.parentModule = parentModule;
         this.x = parentModule.category.getX() + parentModule.category.getWidth();
         this.y = parentModule.category.getY() + parentModule.offsetY;
         this.offsetY = offsetY;
-        this.currentValue = slider.getInput();
-        this.targetValue = currentValue;
     }
 
     public void draw(AtomicInteger offset) {
@@ -67,45 +61,35 @@ public class SliderComponent implements Component {
         this.y = this.parentModule.category.getY() + this.offsetY;
         this.x = this.parentModule.category.getX();
 
+        double d = Math.min(this.parentModule.category.getWidth() - 8, Math.max(0, mousePosX - this.x));
+        this.sliderWidth = (double) (this.parentModule.category.getWidth() - 8) *
+                (this.slider.getInput() - this.slider.getMin()) /
+                (this.slider.getMax() - this.slider.getMin());
+
         if (this.dragging) {
-            double d = Math.min(this.parentModule.category.getWidth() - 8, Math.max(0, mousePosX - this.x));
             if (d == 0.0D) {
-                this.targetValue = this.slider.getMin();
+                this.slider.setValue(this.slider.getMin());
             } else {
                 double rawValue = d / (double) (this.parentModule.category.getWidth() - 8)
                         * (this.slider.getMax() - this.slider.getMin())
                         + this.slider.getMin();
+
                 double increment = this.slider.getIncrement();
                 if (increment > 0) {
                     rawValue = Math.round(rawValue / increment) * increment;
                 }
                 double n = roundToPrecision(rawValue, 2);
                 n = Math.max(this.slider.getMin(), Math.min(this.slider.getMax(), n));
-                this.targetValue = n;
-                this.slider.setValue(this.targetValue);
+                this.slider.setValue(n);
             }
         }
-
-        double diff = this.targetValue - this.currentValue;
-        if (Math.abs(diff) > 0.001) {
-            this.currentValue += diff * SMOOTH_SPEED;
-        } else {
-            this.currentValue = this.targetValue;
-        }
-
-        double range = this.slider.getMax() - this.slider.getMin();
-        double progress = range == 0 ? 0 : (this.currentValue - this.slider.getMin()) / range;
-        this.sliderWidth = (double) (this.parentModule.category.getWidth() - 8) * Math.max(0, Math.min(1, progress));
-
         if (this.increment != 0 && this.increment < System.currentTimeMillis()) {
             this.increment = System.currentTimeMillis() + 50;
             this.slider.stepping(true);
-            this.targetValue = this.slider.getInput();
         }
         if (this.decrement != 0 && this.decrement < System.currentTimeMillis()) {
             this.decrement = System.currentTimeMillis() + 50;
             this.slider.stepping(false);
-            this.targetValue = this.slider.getInput();
         }
     }
 
@@ -121,37 +105,25 @@ public class SliderComponent implements Component {
 
     public void mouseDown(int x, int y, int button) {
         if (this.isTextHovered(x, y) && button == 0 && this.parentModule.panelExpand) {
-            GuiInput.prompt(slider.getName().replace("-", " "), slider.getValueString(), value -> {
-                slider.setValueString(value);
-                this.targetValue = slider.getInput();
-                this.currentValue = this.targetValue;
-            }, ClickGui.getInstance());
+            GuiInput.prompt(slider.getName().replace("-", " "), slider.getValueString(), slider::setValueString, ClickGui.getInstance());
             return;
         }
 
         if (this.isLeftHalfHovered(x, y) && this.parentModule.panelExpand) {
             if (button == 0) {
                 this.dragging = true;
-                this.targetValue = this.slider.getInput();
-                this.currentValue = this.targetValue;
-            } else if (button == 1 && this.decrement == 0) {
+            } else if(button == 1 && this.decrement == 0) {
                 this.decrement = System.currentTimeMillis() + 500;
                 this.slider.stepping(false);
-                this.targetValue = this.slider.getInput();
-                this.currentValue = this.targetValue;
             }
         }
 
         if (this.isRightHalfHovered(x, y) && this.parentModule.panelExpand) {
             if (button == 0) {
                 this.dragging = true;
-                this.targetValue = this.slider.getInput();
-                this.currentValue = this.targetValue;
-            } else if (button == 1 && this.increment == 0) {
+            } else if(button == 1 && this.increment == 0) {
                 this.increment = System.currentTimeMillis() + 500;
                 this.slider.stepping(true);
-                this.targetValue = this.slider.getInput();
-                this.currentValue = this.targetValue;
             }
         }
     }

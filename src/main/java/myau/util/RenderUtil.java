@@ -530,6 +530,7 @@ public class RenderUtil {
         }
     }
 
+
     static final class EnchantmentMap extends HashMap<Integer, EnchantmentData> {
         EnchantmentMap() {
             this.put(0, new EnchantmentData("Pr", 4));
@@ -558,5 +559,68 @@ public class RenderUtil {
             this.put(61, new EnchantmentData("LoS", 3));
             this.put(62, new EnchantmentData("Lu", 3));
         }
+    }
+
+    public static void drawRoundedRect(float x, float y, float width, float height, float radius, int color) {
+        if (width <= 0 || height <= 0) return;
+
+        float a = (color >> 24 & 0xFF) / 255.0F;
+        float r = (color >> 16 & 0xFF) / 255.0F;
+        float g = (color >> 8 & 0xFF) / 255.0F;
+        float b = (color & 0xFF) / 255.0F;
+
+        float maxRadius = Math.min(width, height) / 2.0F;
+        if (radius > maxRadius) radius = maxRadius;
+
+        GlStateManager.enableBlend();
+        GlStateManager.disableTexture2D();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GlStateManager.color(r, g, b, a);
+
+        Tessellator tessellator = Tessellator.getInstance();
+        WorldRenderer worldrenderer = tessellator.getWorldRenderer();
+        worldrenderer.begin(7, DefaultVertexFormats.POSITION);
+
+        int segments = 16;
+        float step = (float) (Math.PI * 2 / segments);
+
+        for (int i = 0; i <= segments / 4; i++) {
+            float angle = (float) (Math.PI / 2 + i * step);
+            float dx = (float) Math.cos(angle) * radius;
+            float dy = (float) Math.sin(angle) * radius;
+            float px = x + radius - dx;
+            float py = y + radius - dy;
+            worldrenderer.pos(px, py, 0).endVertex();
+        }
+        for (int i = 0; i <= segments / 4; i++) {
+            float angle = (float) (i * step);
+            float dx = (float) Math.cos(angle) * radius;
+            float dy = (float) Math.sin(angle) * radius;
+            float px = x + width - radius + dx;
+            float py = y + radius - dy;
+            worldrenderer.pos(px, py, 0).endVertex();
+        }
+        for (int i = 0; i <= segments / 4; i++) {
+            float angle = (float) (Math.PI / 2 + i * step);
+            float dx = (float) Math.cos(angle) * radius;
+            float dy = (float) Math.sin(angle) * radius;
+            float px = x + width - radius + dy;
+            float py = y + height - radius + dx;
+            worldrenderer.pos(px, py, 0).endVertex();
+        }
+        for (int i = 0; i <= segments / 4; i++) {
+            float angle = (float) (i * step);
+            float dx = (float) Math.cos(angle) * radius;
+            float dy = (float) Math.sin(angle) * radius;
+            float px = x + radius - dy;
+            float py = y + height - radius + dx;
+            worldrenderer.pos(px, py, 0).endVertex();
+        }
+
+        tessellator.draw();
+
+        GlStateManager.enableTexture2D();
+        GlStateManager.disableBlend();
+        GlStateManager.resetColor();
     }
 }
