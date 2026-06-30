@@ -14,7 +14,7 @@ import org.lwjgl.opengl.GL11;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class BindComponent implements Component {
-    private boolean isBinding;
+    public boolean isBinding;
     private final ModuleComponent parentModule;
     private int offsetY;
     private int x;
@@ -35,7 +35,6 @@ public class BindComponent implements Component {
         GL11.glPopMatrix();
     }
 
-    @Override
     public void update(int mousePosX, int mousePosY) {
         boolean h = this.isHovered(mousePosX, mousePosY);
         this.y = this.parentModule.category.getY() + this.offsetY;
@@ -47,45 +46,39 @@ public class BindComponent implements Component {
             this.isBinding = !this.isBinding;
         } else if (this.isBinding && this.parentModule.panelExpand) {
             int keyIndex = button - 100;
-            
             if (button == 0) {
                 this.isBinding = false;
                 return;
             }
-            
             this.parentModule.mod.setKey(keyIndex);
             this.isBinding = false;
         }
     }
 
-    @Override
     public void mouseReleased(int x, int y, int button) {
-
     }
 
-    @Override
     public void keyTyped(char chatTyped, int keyCode) {
         if (this.isBinding) {
             if (keyCode == 1) {
+                this.parentModule.mod.setKey(0);
                 this.isBinding = false;
                 return;
             }
-            
-            if (keyCode == 11) { 
+            if (keyCode == 11) {
                 if (this.parentModule.mod instanceof GuiModule) {
                     this.parentModule.mod.setKey(54);
                 } else {
                     this.parentModule.mod.setKey(0);
                 }
-            } else {
-                this.parentModule.mod.setKey(keyCode);
+                this.isBinding = false;
+                return;
             }
-
+            this.parentModule.mod.setKey(keyCode);
             this.isBinding = false;
         }
     }
 
-    @Override
     public void setComponentStartAt(int newOffsetY) {
         this.offsetY = newOffsetY;
     }
@@ -98,7 +91,6 @@ public class BindComponent implements Component {
         return 12;
     }
 
-    @Override
     public boolean isVisible() {
         return true;
     }

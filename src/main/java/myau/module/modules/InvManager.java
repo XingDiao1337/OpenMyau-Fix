@@ -92,7 +92,6 @@ public class InvManager extends Module {
             }
             if (!(mc.currentScreen instanceof GuiInventory)) {
                 if (this.inventoryOpen) {
-                    // 关闭背包时清零冷却
                     this.autoArmorCooldown = 0;
                 }
                 this.inventoryOpen = false;
@@ -271,14 +270,15 @@ public class InvManager extends Module {
 
     @EventTarget
     public void onClick(WindowClickEvent event) {
-        if (this.minDelay.getValue() == 0 && this.maxDelay.getValue() == 0) {
-            this.actionDelay = 0;
-        } else {
-            this.actionDelay = RandomUtils.nextInt(this.minDelay.getValue(), this.maxDelay.getValue() + 1);
-        }
+        int min = this.minDelay.getValue();
+        int max = this.maxDelay.getValue();
+        int realMin = Math.max(0, min - 1);
+        int realMax = Math.max(0, max - 1);
+        if (realMin > realMax) realMin = realMax;
+        this.actionDelay = RandomUtils.nextInt(realMin, realMax + 1);
 
         if (this.autoArmor.getValue() && this.inventoryOpen && mc.thePlayer != null) {
-                int slotId = event.getSlotId();
+            int slotId = event.getSlotId();
             if (slotId >= 36 && slotId <= 39) {
                 if (!mc.thePlayer.inventoryContainer.getSlot(slotId).getHasStack()) {
                     if (!this.isAutoArmorClick) {

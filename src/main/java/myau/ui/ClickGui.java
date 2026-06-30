@@ -6,6 +6,7 @@ import com.google.gson.JsonParser;
 import myau.Myau;
 import myau.module.Module;
 import myau.module.modules.*;
+import myau.ui.components.BindComponent;
 import myau.ui.components.CategoryComponent;
 import net.minecraft.client.gui.GuiScreen;
 import org.lwjgl.input.Mouse;
@@ -75,7 +76,6 @@ public class ClickGui extends GuiScreen {
         renderModules.add(Myau.moduleManager.getModule(ChestESP.class));
         renderModules.add(Myau.moduleManager.getModule(Trajectories.class));
         renderModules.add(Myau.moduleManager.getModule(Notifications.class));
-        renderModules.add(Myau.moduleManager.getModule(FreeLook.class));
 
         List<Module> playerModules = new ArrayList<>();
         playerModules.add(Myau.moduleManager.getModule(AutoHeal.class));
@@ -126,7 +126,6 @@ public class ClickGui extends GuiScreen {
 
         this.categoryList = new ArrayList<>();
         int topOffset = 5;
-
 
         CategoryComponent combat = new CategoryComponent("Combat", combatModules);
         combat.setY(topOffset);
@@ -225,7 +224,6 @@ public class ClickGui extends GuiScreen {
                 c.mouseDown(x, y, mouseButton);
             }
         }
-
     }
 
     public void mouseReleased(int x, int y, int mouseButton) {
@@ -263,25 +261,34 @@ public class ClickGui extends GuiScreen {
     }
 
     public void keyTyped(char typedChar, int key) {
-        if (key == 1) {
-            this.mc.displayGuiScreen(null);
+        boolean hasBinding = false;
+        for (CategoryComponent cat : categoryList) {
+            if (!cat.isOpened()) continue;
+            for (Component comp : cat.getModules()) {
+                if (comp instanceof BindComponent && ((BindComponent) comp).isBinding) {
+                    hasBinding = true;
+                    break;
+                }
+            }
+            if (hasBinding) break;
+        }
+
+        if (hasBinding) {
+            for (CategoryComponent cat : categoryList) {
+                if (!cat.isOpened()) continue;
+                for (Component comp : cat.getModules()) {
+                    comp.keyTyped(typedChar, key);
+                }
+            }
         } else {
-            Iterator<CategoryComponent> btnCat = categoryList.iterator();
-
-            while (true) {
-                CategoryComponent cat;
-                do {
-                    do {
-                        if (!btnCat.hasNext()) {
-                            return;
-                        }
-
-                        cat = btnCat.next();
-                    } while (!cat.isOpened());
-                } while (cat.getModules().isEmpty());
-
-                for (Component component : cat.getModules()) {
-                    component.keyTyped(typedChar, key);
+            if (key == 1) {
+                this.mc.displayGuiScreen(null);
+            } else {
+                for (CategoryComponent cat : categoryList) {
+                    if (!cat.isOpened()) continue;
+                    for (Component comp : cat.getModules()) {
+                        comp.keyTyped(typedChar, key);
+                    }
                 }
             }
         }

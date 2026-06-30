@@ -1,4 +1,3 @@
-
 package myau.ui.components;
 
 import myau.Myau;
@@ -104,8 +103,6 @@ public class ModuleComponent implements Component {
                 }
             }
         }
-
-
     }
 
     public int getHeight() {
@@ -131,25 +128,26 @@ public class ModuleComponent implements Component {
                 }
             }
         }
-
     }
 
     public void mouseDown(int x, int y, int button) {
-        if (this.isHovered(x, y) && button == 0) {
-            this.mod.toggle();
+        boolean onTitle = x > this.category.getX() && x < this.category.getX() + this.category.getWidth()
+                && y > this.category.getY() + this.offsetY && y < this.category.getY() + this.offsetY + 16;
+        if (onTitle) {
+            if (button == 0) {
+                this.mod.toggle();
+            } else if (button == 1) {
+                this.panelExpand = !this.panelExpand;
+            }
+            return;
         }
 
-        if (this.isHovered(x, y) && button == 1) {
-            this.panelExpand = !this.panelExpand;
-        }
-
-        if(!panelExpand) return;
+        if (!panelExpand) return;
         for (Component c : this.settings) {
             if (c.isVisible()) {
                 c.mouseDown(x, y, button);
             }
         }
-
     }
 
     public void mouseReleased(int x, int y, int button) {
@@ -159,7 +157,6 @@ public class ModuleComponent implements Component {
                 c.mouseReleased(x, y, button);
             }
         }
-
     }
 
     public void keyTyped(char chatTyped, int keyCode) {
@@ -169,13 +166,11 @@ public class ModuleComponent implements Component {
                 c.keyTyped(chatTyped, keyCode);
             }
         }
-
     }
 
     public boolean isHovered(int x, int y) {
         return x > this.category.getX() && x < this.category.getX() + this.category.getWidth() && y > this.category.getY() + this.offsetY && y < this.category.getY() + 16 + this.offsetY;
     }
-
 
     @Override
     public boolean isVisible() {

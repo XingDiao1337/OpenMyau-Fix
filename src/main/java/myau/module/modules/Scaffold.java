@@ -73,8 +73,11 @@ public class Scaffold extends Module {
     private double savedMotionY;
     private double savedMotionZ;
     private boolean safeStuckActive = false;
+    private boolean snapRotating = false;
     private boolean placedThisTick = false;
-    public final ModeProperty rotationMode = new ModeProperty("rotations", 2, new String[]{"NONE", "DEFAULT", "BACKWARDS", "SIDEWAYS", "Hypixel"});
+    private float lastSnapPlaceYaw = Float.NaN;
+    private float lastSnapPlacePitch = Float.NaN;
+    public final ModeProperty rotationMode = new ModeProperty("rotations", 2, new String[]{"NONE", "DEFAULT", "BACKWARDS", "SIDEWAYS", "GODBIRGDE", "SMOOTH", "Hypixel", "SNAP"});
     public final FloatProperty tellystartrotationminspeed = new FloatProperty("telly-start-rotation-min-speed", 90.0F, 1.0F, 180.0F, () -> this.keepY.getValue() == 3 || this.keepY.getValue() == 4);
     public final FloatProperty tellystartrotationmaxspeed = new FloatProperty("telly-start-rotation-max-speed", 95.0F, 1.0F, 180.0F, () -> this.keepY.getValue() == 3 || this.keepY.getValue() == 4);
     public final FloatProperty tellynormalrotationminspeed = new FloatProperty("telly-normal-rotation-min-speed", 30.0F, 1.0F, 180.0F, () -> this.keepY.getValue() == 3 || this.keepY.getValue() == 4);
@@ -85,7 +88,7 @@ public class Scaffold extends Module {
     public final PercentProperty airMotion = new PercentProperty("air-motion", 100);
     public final PercentProperty speedMotion = new PercentProperty("speed-motion", 100);
     public final ModeProperty tower = new ModeProperty("tower", 0, new String[]{"NONE", "VANILLA", "EXTRA", "TELLY"});
-    public final BooleanProperty hypixeltower = new BooleanProperty("hypixeltower", false, () -> this.tower.getValue() == 0 || this.tower.getValue() == 3);
+    public final BooleanProperty hypixeltower = new BooleanProperty("hypixeltower", false, () -> this.tower.getValue() == 3);
     public final BooleanProperty safe = new BooleanProperty("safe", false, () -> this.tower.getValue() == 3);
     public final IntProperty safeStuckDelayTicksProperty = new IntProperty("safe-delay-ticks", 1, 1, 3, () -> this.tower.getValue() == 3 && this.safe.getValue());
     public final ModeProperty keepY = new ModeProperty("keep-y", 0, new String[]{"NONE", "VANILLA", "EXTRA", "TELLY", "EXTRATELLY"});
@@ -217,6 +220,38 @@ public class Scaffold extends Module {
             return null;
         }
         return mop;
+    }
+
+    private boolean isDuplicateSnapRotation(float yaw, float pitch) {
+        return !Float.isNaN(this.lastSnapPlaceYaw)
+                && Math.abs(MathHelper.wrapAngleTo180_float(yaw - this.lastSnapPlaceYaw)) < 0.35F;
+    }
+
+    private float[] getSnapRotation(BlockData blockData, float yaw, float pitch) {
+        float baseYaw = RotationUtil.quantizeAngle(yaw);
+        float basePitch = RotationUtil.quantizeAngle(MathHelper.clamp_float(pitch, -90.0F, 90.0F));
+
+        if (!this.isDuplicateSnapRotation(baseYaw, basePitch)) {
+            return new float[]{baseYaw, basePitch};
+        }
+
+        for (int i = 0; i < 24; i++) {
+            float yawStep = 0.35F + 0.075F * (float) (i / 2);
+            float pitchStep = 0.025F + 0.01F * (float) (i / 3);
+            float testYaw = RotationUtil.quantizeAngle(baseYaw + (i % 2 == 0 ? yawStep : -yawStep));
+            float testPitch = RotationUtil.quantizeAngle(MathHelper.clamp_float(basePitch + (i % 4 < 2 ? pitchStep : -pitchStep), -90.0F, 90.0F));
+
+            if (!this.isDuplicateSnapRotation(testYaw, testPitch) && this.getPlacementMop(blockData, testYaw, testPitch) != null) {
+                return new float[]{testYaw, testPitch};
+            }
+        }
+
+        return null;
+    }
+
+    private void rememberSnapRotation() {
+        this.lastSnapPlaceYaw = this.yaw;
+        this.lastSnapPlacePitch = this.pitch;
     }
 
     private EnumFacing yawToFacing(float yaw) {
@@ -363,7 +398,7 @@ public class Scaffold extends Module {
                 this.rotationTick--;
             }
             this.updateEagle();
-            if (this.tower.getValue() == 3 && this.hypixeltower.getValue() && mc.thePlayer.motionY <= 0.0 && Math.sqrt(mc.thePlayer.motionX * mc.thePlayer.motionX + mc.thePlayer.motionZ * mc.thePlayer.motionZ) <= 0.02D && mc.thePlayer.motionY >= -0.09 && !(Keyboard.isKeyDown(mc.gameSettings.keyBindForward.getKeyCode()) ||
+            if (hypixeltower.getValue() && mc.thePlayer.motionY <= 0.0 && Math.sqrt(mc.thePlayer.motionX * mc.thePlayer.motionX + mc.thePlayer.motionZ * mc.thePlayer.motionZ) <= 0.02D && mc.thePlayer.motionY >= -0.09 && !(Keyboard.isKeyDown(mc.gameSettings.keyBindForward.getKeyCode()) ||
                     Keyboard.isKeyDown(mc.gameSettings.keyBindBack.getKeyCode()) ||
                     Keyboard.isKeyDown(mc.gameSettings.keyBindLeft.getKeyCode()) ||
                     Keyboard.isKeyDown(mc.gameSettings.keyBindRight.getKeyCode())) && Keyboard.isKeyDown(mc.gameSettings.keyBindJump.getKeyCode())) {
@@ -411,6 +446,8 @@ public class Scaffold extends Module {
                 float diagonalYaw = this.isDiagonal(currentYaw)
                         ? yawDiffTo180
                         : RotationUtil.wrapAngleDiff(currentYaw - 135.0F * ((currentYaw + 180.0F) % 90.0F < 45.0F ? 1.0F : -1.0F), event.getYaw());
+                boolean snapMode = this.rotationMode.getValue() == 7;
+                this.snapRotating = false;
                 if (!this.canRotate) {
                     switch (this.rotationMode.getValue()) {
                         case 1:
@@ -437,13 +474,49 @@ public class Scaffold extends Module {
                                 this.yaw = RotationUtil.quantizeAngle(diagonalYaw);
                             }
                             break;
-                        case 4:
+                        case 4: // God Bridge Mode
+                            // 1. SNAP YAW TO NEAREST 45-DEGREE DIAGONAL
+                            // This finds if you are facing 45, 135, -45, or -135 and locks you there perfectly.
+                            float roundedYaw = Math.round(currentYaw / 45.0f) * 45.0f;
+                            this.yaw = RotationUtil.quantizeAngle(roundedYaw);
+
+                            // 2. SET THE GODBRIDGE PITCH
+                            if (this.pitch == 0.0F || !this.canRotate) {
+        /*
+           75.6f to 79.5f is the "Golden Range" for Godbridging.
+           - 75.6f is good for high CPS/Short Drag
+           - 79.3f is common for "Telly" or standard Godbridge
+        */
+                                float godBridgePitch = 79.3f;
+                                this.pitch = RotationUtil.quantizeAngle(godBridgePitch);
+                            }
+                            break;
+                        case 5:
+                            if (this.yaw == -180.0F && this.pitch == 0.0F) {
+                                this.yaw = RotationUtil.quantizeAngle(diagonalYaw);
+                                this.pitch = RotationUtil.quantizeAngle(85.0F);
+                            } else {
+                                float targetYaw = this.isDiagonal(currentYaw) ? diagonalYaw : yawDiffTo180;
+                                float yawDiff = MathHelper.wrapAngleTo180_float(targetYaw - this.yaw);
+                                float pitchDiff = MathHelper.wrapAngleTo180_float(85.0F - this.pitch);
+                                float yawTolerance = this.rotationTick >= 2 ? RandomUtil.nextFloat(tellystartrotationminspeed.getValue(), tellystartrotationmaxspeed.getValue()) : RandomUtil.nextFloat(tellynormalrotationminspeed.getValue(), tellynormalrotationmaxspeed.getValue());
+                                float pitchTolerance = this.rotationTick >= 2 ? RandomUtil.nextFloat(tellystartrotationminspeed.getValue(), tellystartrotationmaxspeed.getValue()) : RandomUtil.nextFloat(tellynormalrotationminspeed.getValue(), tellynormalrotationmaxspeed.getValue());
+                                this.yaw = RotationUtil.quantizeAngle(this.yaw + RotationUtil.clampAngle(yawDiff, yawTolerance));
+                                this.pitch = RotationUtil.quantizeAngle(this.pitch + RotationUtil.clampAngle(pitchDiff, pitchTolerance));
+                            }
+                            break;
+                        case 6:
+                            //idk what to put here so imma just do the same as sideways for now
                             if (this.yaw == -180.0F && this.pitch == 0.0F) {
                                 this.yaw = RotationUtil.quantizeAngle(diagonalYaw);
                                 this.pitch = RotationUtil.quantizeAngle(85.0F);
                             } else {
                                 this.yaw = RotationUtil.quantizeAngle(diagonalYaw);
                             }
+                            break;
+                        case 7:
+                            this.yaw = RotationUtil.quantizeAngle(yawDiffTo180);
+                            this.pitch = RotationUtil.quantizeAngle(85.0F);
                             break;
                     }
                 }
@@ -507,6 +580,45 @@ public class Scaffold extends Module {
                     }
                 }
                 boolean towerRotating = this.towering || this.isTowering();
+                boolean snapAlreadyLooking = false;
+                boolean snapCanPlace = true;
+                if (snapMode && !towerRotating && blockData != null) {
+                    MovingObjectPosition currentMop = this.getPlacementMop(blockData, event.getYaw(), event.getPitch());
+                    if (currentMop != null) {
+                        float[] snapRotation = this.getSnapRotation(blockData, event.getYaw(), event.getPitch());
+                        if (snapRotation == null) {
+                            snapCanPlace = false;
+                            hitVec = null;
+                        } else {
+                            this.yaw = snapRotation[0];
+                            this.pitch = snapRotation[1];
+                            this.canRotate = true;
+                            MovingObjectPosition snapMop = this.getPlacementMop(blockData, this.yaw, this.pitch);
+                            hitVec = snapMop != null ? snapMop.hitVec : currentMop.hitVec;
+                            this.snapRotating = true;
+                            if (this.rotationTick > 1) {
+                                this.rotationTick = 1;
+                            }
+                        }
+                    } else if (hitVec != null && this.canRotate) {
+                        float[] snapRotation = this.getSnapRotation(blockData, this.yaw, this.pitch);
+                        if (snapRotation == null) {
+                            snapCanPlace = false;
+                            hitVec = null;
+                        } else {
+                            this.yaw = snapRotation[0];
+                            this.pitch = snapRotation[1];
+                            MovingObjectPosition snapMop = this.getPlacementMop(blockData, this.yaw, this.pitch);
+                            if (snapMop != null) {
+                                hitVec = snapMop.hitVec;
+                            }
+                            this.snapRotating = true;
+                            if (this.rotationTick > 1) {
+                                this.rotationTick = 1;
+                            }
+                        }
+                    }
+                }
                 if (this.canRotate && MoveUtil.isForwardPressed() && Math.abs(MathHelper.wrapAngleTo180_float(yawDiffTo180 - this.yaw)) < 90.0F) {
                     switch (this.rotationMode.getValue()) {
                         case 2:
@@ -516,7 +628,7 @@ public class Scaffold extends Module {
                             this.yaw = RotationUtil.quantizeAngle(diagonalYaw);
                     }
                 }
-                if (this.rotationMode.getValue() != 0 && towerRotating) {
+                if (this.rotationMode.getValue() != 0 && (!snapMode || this.snapRotating || towerRotating)) {
                     float targetYaw = this.yaw;
                     float targetPitch = this.pitch;
                     if (this.towering && (mc.thePlayer.motionY > 0.0 || mc.thePlayer.posY > (double) (this.startY + 1))) {
@@ -540,9 +652,12 @@ public class Scaffold extends Module {
                         event.setPervRotation(targetYaw, 3);
                     }
                 }
-                if (blockData != null && hitVec != null && (this.rotationTick <= 0)) {
+                if (blockData != null && hitVec != null && snapCanPlace && (this.rotationTick <= 0 || snapAlreadyLooking)) {
                     this.place(blockData.blockPos(), blockData.facing(), hitVec);
-                    if (this.multiplace.getValue()) {
+                    if (snapMode) {
+                        this.rememberSnapRotation();
+                    }
+                    if (this.multiplace.getValue() && !snapMode) {
                         for (int i = 0; i < 3; i++) {
                             blockData = this.getBlockData();
                             if (blockData == null) {
@@ -919,6 +1034,9 @@ public class Scaffold extends Module {
         this.eagleSneakTicks = 0;
         this.eagleBlocksPlaced = 0;
         this.eagleLastSneakTime = 0L;
+        this.snapRotating = false;
+        this.lastSnapPlaceYaw = Float.NaN;
+        this.lastSnapPlacePitch = Float.NaN;
     }
 
     @Override

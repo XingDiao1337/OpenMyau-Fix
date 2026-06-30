@@ -136,6 +136,11 @@ public class TeamUtil {
         return displayName.contains("STREAK POWERS");
     }
 
+    public static boolean isTeammate(Entity entity) {
+        if (!(entity instanceof EntityPlayer)) return false;
+        return isSameTeam((EntityPlayer) entity);
+    }
+
     public static boolean isFriend(EntityPlayer player) {
         return Myau.friendManager.isFriend(player.getName());
     }

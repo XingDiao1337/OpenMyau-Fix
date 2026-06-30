@@ -133,4 +133,63 @@ public class RotationUtil {
         Vec3 targetPos = eyePos.addVector(lookVec.xCoord * distance, lookVec.yCoord * distance, lookVec.zCoord * distance);
         return boundingBox.calculateIntercept(eyePos, targetPos);
     }
+
+    public static Vec3 getEntityHitVec(Entity entity) {
+        AxisAlignedBB bb = entity.getEntityBoundingBox();
+        Vec3 eyePos = ClientUtil.getPlayerEyesPosition(); // 调用 ClientUtil
+        float yaw = Minecraft.getMinecraft().thePlayer.rotationYaw;
+        float pitch = Minecraft.getMinecraft().thePlayer.rotationPitch;
+        Vec3 lookVec = getLookVectorFromAngles(pitch, yaw);
+        Vec3 hitVec = getIntercept(eyePos, lookVec, bb);
+        if (hitVec != null) {
+            return hitVec;
+        } else {
+            double x = clampDouble(eyePos.xCoord, bb.minX, bb.maxX);
+            double y = clampDouble(eyePos.yCoord, bb.minY, bb.maxY);
+            double z = clampDouble(eyePos.zCoord, bb.minZ, bb.maxZ);
+            return new Vec3(x, y, z);
+        }
+    }
+
+    private static Vec3 getIntercept(Vec3 start, Vec3 dir, AxisAlignedBB bb) {
+        Vec3 end = start.addVector(dir.xCoord * 6.0, dir.yCoord * 6.0, dir.zCoord * 6.0);
+        MovingObjectPosition mop = bb.calculateIntercept(start, end);
+        return mop != null ? mop.hitVec : null;
+    }
+
+    public static Vec3 getLookVectorFromAngles(float pitch, float yaw) {
+        float f = MathHelper.cos(-yaw * (float) (Math.PI / 180.0) - (float) Math.PI);
+        float f1 = MathHelper.sin(-yaw * (float) (Math.PI / 180.0) - (float) Math.PI);
+        float f2 = -MathHelper.cos(-pitch * (float) (Math.PI / 180.0));
+        float f3 = MathHelper.sin(-pitch * (float) (Math.PI / 180.0));
+        return new Vec3((double)(f1 * f2), (double)f3, (double)(f * f2));
+    }
+
+    public static float getAngleDifference(float from, float to) {
+        float delta = to % 360.0F - from % 360.0F;
+        return ((delta + 180.0F) % 360.0F + 360.0F) % 360.0F - 180.0F;
+    }
+
+    public static double getYawDifference(Entity entity) {
+        float yawTo = (float) (Math.atan2(entity.posX - mc.thePlayer.posX, entity.posZ - mc.thePlayer.posZ) * 180.0 / Math.PI) * -1.0F;
+        return Math.abs(MathHelper.wrapAngleTo180_double((double)(yawTo - mc.thePlayer.rotationYaw)));
+    }
+
+    public static float[] getRotationToVec(Vec3 vec) {
+        return getRotationToPosition(vec.xCoord, vec.yCoord, vec.zCoord);
+    }
+
+    public static float[] getRotationToPosition(double posX, double posY, double posZ) {
+        double x = posX - mc.thePlayer.posX;
+        double y = posY - (mc.thePlayer.posY + mc.thePlayer.getEyeHeight());
+        double z = posZ - mc.thePlayer.posZ;
+        double dist = MathHelper.sqrt_double(x * x + z * z);
+        float yaw = (float)(Math.atan2(z, x) * 180.0 / Math.PI) - 90.0F;
+        float pitch = (float)(-Math.atan2(y, dist) * 180.0 / Math.PI);
+        return new float[]{yaw, pitch};
+    }
+
+    public static double clampDouble(double val, double min, double max) {
+        return val < min ? min : Math.min(val, max);
+    }
 }
