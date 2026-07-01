@@ -81,6 +81,7 @@ public class ClickGui extends GuiScreen {
         renderModules.add(Myau.moduleManager.getModule(ChestESP.class));
         renderModules.add(Myau.moduleManager.getModule(Trajectories.class));
         renderModules.add(Myau.moduleManager.getModule(Notifications.class));
+        renderModules.add(Myau.moduleManager.getModule(WaterMark.class));
 
         List<Module> playerModules = new ArrayList<>();
         playerModules.add(Myau.moduleManager.getModule(AutoHeal.class));
@@ -108,6 +109,7 @@ public class ClickGui extends GuiScreen {
         miscModules.add(Myau.moduleManager.getModule(AntiObfuscate.class));
         miscModules.add(Myau.moduleManager.getModule(AutoAnduril.class));
         miscModules.add(Myau.moduleManager.getModule(InventoryClicker.class));
+        miscModules.add(Myau.moduleManager.getModule(PartySpammer.class));
 
         Comparator<Module> comparator = Comparator.comparing(m -> m.getName().toLowerCase());
         combatModules.sort(comparator);
@@ -205,7 +207,7 @@ public class ClickGui extends GuiScreen {
         currentRenderer = getFontRenderer();
 
         currentRenderer.drawStringWithShadow("Myau " + Myau.version, 4, this.height - 3 - currentRenderer.FONT_HEIGHT * 2, new Color(60, 162, 253).getRGB());
-        currentRenderer.drawStringWithShadow("dev, &bMornly", 4, this.height - 3 - currentRenderer.FONT_HEIGHT, new Color(60, 162, 253).getRGB());
+        currentRenderer.drawStringWithShadow("dev, Mornly", 4, this.height - 3 - currentRenderer.FONT_HEIGHT, new Color(60, 162, 253).getRGB());
 
         for (CategoryComponent category : categoryList) {
             category.render(currentRenderer);

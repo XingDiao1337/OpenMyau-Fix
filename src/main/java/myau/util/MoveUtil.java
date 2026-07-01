@@ -97,6 +97,13 @@ public class MoveUtil {
         return MoveUtil.getSpeed(MoveUtil.mc.thePlayer.motionX, MoveUtil.mc.thePlayer.motionZ);
     }
 
+    public static boolean isMoving() {
+        return mc.thePlayer.movementInput.moveForward != 0.0F
+                || mc.thePlayer.movementInput.moveStrafe != 0.0F
+                || Math.abs(mc.thePlayer.motionX) > 0.01
+                || Math.abs(mc.thePlayer.motionZ) > 0.01;
+    }
+
     public static double getSpeed(double motionX, double motionZ) {
         return Math.hypot(motionX, motionZ);
     }

@@ -19,9 +19,9 @@ import myau.util.RotationUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.inventory.GuiInventory;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.network.play.client.C02PacketUseEntity;
-import net.minecraft.network.play.client.C0APacketAnimation;
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.network.Packet;
+import net.minecraft.network.play.client.*;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
 import net.minecraft.network.play.server.S19PacketEntityStatus;
 import net.minecraft.network.play.server.S27PacketExplosion;
@@ -49,7 +49,16 @@ public class Velocity extends Module {
     private boolean shouldJump = false;
     private int jumpCooldown = 0;
 
-    public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"VANILLA", "JUMP", "HYPIXEL"});
+    private int slapReduceTicks = 0;
+    private int slapAnInt = 0;
+    private boolean slot = false;
+    private boolean attack = false;
+    private boolean swing = false;
+    private boolean block = false;
+    private boolean inventory = false;
+    private boolean dig = false;
+
+    public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"Vanilla", "Jump", "Hypixel", "Slap_Attack"});
 
     public final PercentProperty chance = new PercentProperty("chance", 100, () -> mode.getValue() == 0);
     public final PercentProperty horizontal = new PercentProperty("horizontal", 0, () -> mode.getValue() == 0);
@@ -64,6 +73,8 @@ public class Velocity extends Module {
     public final BooleanProperty jump = new BooleanProperty("jump", true, () -> mode.getValue() == 2);
     public final BooleanProperty rotate = new BooleanProperty("rotate", false, () -> mode.getValue() == 2);
     public final IntProperty rotateTick = new IntProperty("rotate-ticks", 3, 1, 12, () -> mode.getValue() == 2 && rotate.getValue());
+
+    public final BooleanProperty slapReduce = new BooleanProperty("attack-reduce", true, () -> mode.getValue() == 3);
 
     public final BooleanProperty fakeCheck = new BooleanProperty("fake-check", true);
     public final BooleanProperty debugLog = new BooleanProperty("debug-log", false);
@@ -273,65 +284,144 @@ public class Velocity extends Module {
                 jumpCooldown--;
             }
         }
+
+        if (this.mode.getValue() == 3 && this.slapReduce.getValue() && event.getType() == EventType.PRE) {
+            if (this.slapReduceTicks > 0) {
+                this.slapReduceTicks--;
+                KillAura killAura = (KillAura) Myau.moduleManager.getModule(KillAura.class);
+                if (killAura != null && killAura.isEnabled() && killAura.getTarget() != null) {
+                    EntityLivingBase target = killAura.getTarget();
+                    if (!((IAccessorEntity) mc.thePlayer).getIsInWeb() && mc.thePlayer.isSprinting() && MoveUtil.isMoving() && target != mc.thePlayer && !this.badPackets()) {
+                        EventManager.call(new AttackEvent(target));
+                        mc.getNetHandler().addToSendQueue(new C0APacketAnimation());
+                        mc.getNetHandler().addToSendQueue(new C02PacketUseEntity(target, C02PacketUseEntity.Action.ATTACK));
+                        mc.thePlayer.motionX *= 0.6;
+                        mc.thePlayer.motionZ *= 0.6;
+                        mc.thePlayer.setSprinting(false);
+                        this.slapAnInt++;
+                        if (this.debugLog.getValue()) {
+                            ChatUtil.sendFormatted(Myau.clientName + "SlapAttack reduce " + this.slapAnInt);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     @EventTarget
     public void onPacket(PacketEvent event) {
-        if (!this.isEnabled() || event.isCancelled() || event.getType() != EventType.RECEIVE) return;
+        if (!this.isEnabled() || event.isCancelled()) return;
 
-        if (this.mode.getValue() == 0) {
-            if (event.getPacket() instanceof S27PacketExplosion) {
-                S27PacketExplosion packet = (S27PacketExplosion) event.getPacket();
-                if (packet.func_149149_c() != 0.0F || packet.func_149144_d() != 0.0F || packet.func_149147_e() != 0.0F) {
-                    this.pendingExplosion = true;
-                    if (this.explosionHorizontal.getValue() == 0 || this.explosionVertical.getValue() == 0) {
-                        event.setCancelled(true);
+        if (this.mode.getValue() == 3 && event.getType() == EventType.SEND) {
+            Packet<?> packet = event.getPacket();
+            if (packet instanceof C09PacketHeldItemChange) {
+                this.slot = true;
+            } else if (packet instanceof C0APacketAnimation) {
+                this.swing = true;
+            } else if (packet instanceof C02PacketUseEntity) {
+                C02PacketUseEntity useEntity = (C02PacketUseEntity) packet;
+                if (useEntity.getAction() == C02PacketUseEntity.Action.ATTACK) {
+                    this.attack = true;
+                }
+            } else if (packet instanceof C08PacketPlayerBlockPlacement) {
+                this.block = true;
+            } else if (packet instanceof C07PacketPlayerDigging) {
+                this.block = true;
+                this.dig = true;
+            } else if (packet instanceof C0DPacketCloseWindow ||
+                    packet instanceof C0EPacketClickWindow ||
+                    (packet instanceof C16PacketClientStatus &&
+                            ((C16PacketClientStatus) packet).getStatus() == C16PacketClientStatus.EnumState.OPEN_INVENTORY_ACHIEVEMENT)) {
+                this.inventory = true;
+            } else if (packet instanceof C03PacketPlayer) {
+                this.resetBadPackets();
+            }
+        }
+
+        if (event.getType() == EventType.RECEIVE) {
+            if (this.mode.getValue() == 0) {
+                if (event.getPacket() instanceof S27PacketExplosion) {
+                    S27PacketExplosion packet = (S27PacketExplosion) event.getPacket();
+                    if (packet.func_149149_c() != 0.0F || packet.func_149144_d() != 0.0F || packet.func_149147_e() != 0.0F) {
+                        this.pendingExplosion = true;
+                        if (this.explosionHorizontal.getValue() == 0 || this.explosionVertical.getValue() == 0) {
+                            event.setCancelled(true);
+                        }
+                        if (this.debugLog.getValue()) {
+                            ChatUtil.sendFormatted(
+                                    String.format(
+                                            "%sExplosion (&otick: %d, x: %.2f, y: %.2f, z: %.2f&r)&r",
+                                            Myau.clientName,
+                                            mc.thePlayer.ticksExisted,
+                                            mc.thePlayer.motionX + (double) packet.func_149149_c(),
+                                            mc.thePlayer.motionY + (double) packet.func_149144_d(),
+                                            mc.thePlayer.motionZ + (double) packet.func_149147_e()
+                                    )
+                            );
+                        }
+                    }
+                }
+            }
+
+            if (event.getPacket() instanceof S12PacketEntityVelocity) {
+                S12PacketEntityVelocity packet = (S12PacketEntityVelocity) event.getPacket();
+                if (packet.getEntityID() == mc.thePlayer.getEntityId()) {
+                    if (this.mode.getValue() == 2) {
+                        this.hasReceivedVelocity = true;
+                        this.ticksSinceVelocity = 0;
+                    }
+                    if (this.mode.getValue() == 3 && this.slapReduce.getValue()) {
+                        this.slapReduceTicks = 3;
+                        if (this.debugLog.getValue()) {
+                            ChatUtil.sendFormatted(Myau.clientName + "Attack reduceTicks: 3");
+                        }
                     }
                     if (this.debugLog.getValue()) {
                         ChatUtil.sendFormatted(
                                 String.format(
-                                        "%sExplosion (&otick: %d, x: %.2f, y: %.2f, z: %.2f&r)&r",
+                                        "%sVelocity (&otick: %d, x: %.2f, y: %.2f, z: %.2f&r)&r",
                                         Myau.clientName,
                                         mc.thePlayer.ticksExisted,
-                                        mc.thePlayer.motionX + (double) packet.func_149149_c(),
-                                        mc.thePlayer.motionY + (double) packet.func_149144_d(),
-                                        mc.thePlayer.motionZ + (double) packet.func_149147_e()
+                                        (double) packet.getMotionX() / 8000.0,
+                                        (double) packet.getMotionY() / 8000.0,
+                                        (double) packet.getMotionZ() / 8000.0
                                 )
                         );
                     }
                 }
             }
-        }
 
-        if (event.getPacket() instanceof S12PacketEntityVelocity) {
-            S12PacketEntityVelocity packet = (S12PacketEntityVelocity) event.getPacket();
-            if (packet.getEntityID() == mc.thePlayer.getEntityId()) {
-                if (this.mode.getValue() == 2) {
-                    this.hasReceivedVelocity = true;
-                    this.ticksSinceVelocity = 0;
-                }
-                if (this.debugLog.getValue()) {
-                    ChatUtil.sendFormatted(
-                            String.format(
-                                    "%sVelocity (&otick: %d, x: %.2f, y: %.2f, z: %.2f&r)&r",
-                                    Myau.clientName,
-                                    mc.thePlayer.ticksExisted,
-                                    (double) packet.getMotionX() / 8000.0,
-                                    (double) packet.getMotionY() / 8000.0,
-                                    (double) packet.getMotionZ() / 8000.0
-                            )
-                    );
+            if (event.getPacket() instanceof S19PacketEntityStatus) {
+                S19PacketEntityStatus packet = (S19PacketEntityStatus) event.getPacket();
+                Entity entity = packet.getEntity(mc.theWorld);
+                if (entity != null && entity.equals(mc.thePlayer) && packet.getOpCode() == 2) {
+                    this.allowNext = false;
                 }
             }
         }
+    }
 
-        if (event.getPacket() instanceof S19PacketEntityStatus) {
-            S19PacketEntityStatus packet = (S19PacketEntityStatus) event.getPacket();
-            Entity entity = packet.getEntity(mc.theWorld);
-            if (entity != null && entity.equals(mc.thePlayer) && packet.getOpCode() == 2) {
-                this.allowNext = false;
-            }
-        }
+    private boolean badPackets() {
+        return this.badPackets(false, false, false, false, false, false);
+    }
+
+    private boolean badPackets(boolean p1, boolean p2, boolean p3, boolean p4, boolean p5, boolean p6) {
+        if (this.slot && !p1) return true;
+        if (this.attack && !p2) return true;
+        if (this.swing && !p3) return true;
+        if (this.block && !p4) return true;
+        if (this.inventory && !p5) return true;
+        if (this.dig && !p6) return true;
+        return false;
+    }
+
+    private void resetBadPackets() {
+        this.slot = false;
+        this.swing = false;
+        this.attack = false;
+        this.block = false;
+        this.inventory = false;
+        this.dig = false;
     }
 
     @EventTarget
@@ -354,6 +444,9 @@ public class Velocity extends Module {
         velocityAttacked = false;
         this.shouldJump = false;
         this.jumpCooldown = 0;
+        this.slapReduceTicks = 0;
+        this.slapAnInt = 0;
+        this.resetBadPackets();
     }
 
     @Override
@@ -371,6 +464,9 @@ public class Velocity extends Module {
         velocityAttacked = false;
         this.shouldJump = false;
         this.jumpCooldown = 0;
+        this.slapReduceTicks = 0;
+        this.slapAnInt = 0;
+        this.resetBadPackets();
     }
 
     @Override

@@ -113,6 +113,7 @@ public class Myau {
         moduleManager.modules.put(Reach.class, new Reach());
         moduleManager.modules.put(Scaffold.class, new Scaffold());
         moduleManager.modules.put(AutoBlockIn.class, new AutoBlockIn());
+        moduleManager.modules.put(PartySpammer.class, new PartySpammer());
         moduleManager.modules.put(Spammer.class, new Spammer());
         moduleManager.modules.put(Speed.class, new Speed());
         moduleManager.modules.put(SpeedMine.class, new SpeedMine());
@@ -124,6 +125,7 @@ public class Myau {
         moduleManager.modules.put(Velocity.class, new Velocity());
         moduleManager.modules.put(ViewClip.class, new ViewClip());
         moduleManager.modules.put(Wtap.class, new Wtap());
+        moduleManager.modules.put(WaterMark.class, new WaterMark());
         moduleManager.modules.put(Xray.class, new Xray());
         commandManager.commands.add(new BindCommand());
         commandManager.commands.add(new ConfigCommand());
@@ -140,6 +142,7 @@ public class Myau {
         commandManager.commands.add(new TargetCommand());
         commandManager.commands.add(new ToggleCommand());
         commandManager.commands.add(new VclipCommand());
+        commandManager.commands.add(new WebUICommand());
         for (Module module : moduleManager.modules.values()) {
             ArrayList<Property<?>> properties = new ArrayList<>();
             for (final Field field : module.getClass().getDeclaredFields()) {

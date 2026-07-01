@@ -114,7 +114,7 @@ public class KillAura extends Module {
         this.sort = new ModeProperty("Sort", 0, new String[]{"Distance", "Health", "Hurt Time", "FOV"});
 
         this.autoBlock = new ModeProperty(
-                "AutoBlock", 0, new String[]{"None", "Vanilla", "Hypixel", "Legit", "Fake", "Hypixel Spare", "Hypixel Custom"}
+                "AutoBlock", 0, new String[]{"None", "Vanilla", "Hypixel_A", "Hypixel_B", "Legit", "Fake", "Hypixel_Custom"}
         );
         this.autoBlockRequirePress = new BooleanProperty("AutoBlock Require Press", false);
         this.autoBlockCPS = new IntProperty("AutoBlock Aps", 10, 1, 20);
@@ -273,20 +273,13 @@ public class KillAura extends Module {
                 );
     }
 
-    // 替代原 hasVisiblePoint，使用射线检测
     private boolean hasVisiblePoint(AxisAlignedBB box) {
-        // 取箱体中心点检测
         Vec3 center = new Vec3((box.minX + box.maxX) / 2, (box.minY + box.maxY) / 2, (box.minZ + box.maxZ) / 2);
         Vec3 eye = mc.thePlayer.getPositionEyes(1.0F);
         MovingObjectPosition mop = mc.theWorld.rayTraceBlocks(eye, center);
-        // 如果射线没有碰到任何方块，或者碰到的方块不在箱体内，则认为可见
         if (mop == null || mop.typeOfHit == MovingObjectType.MISS) return true;
         if (mop.typeOfHit == MovingObjectType.BLOCK) {
-            BlockPos hitPos = mop.getBlockPos();
-            // 如果击中的方块不在这个箱体内部，则认为可见（即没有方块挡住视线）
-            // 由于我们检测的是中心点，如果被挡住，说明不可见
-            // 更准确的做法是检测多个点，但简化处理
-            return false; // 被方块挡住
+            return false;
         }
         return true;
     }
@@ -381,7 +374,7 @@ public class KillAura extends Module {
 
     public boolean shouldAutoBlock() {
         if (this.isPlayerBlocking() && this.isBlocking) {
-            return !mc.thePlayer.isInWater() && !mc.thePlayer.isInLava() && (this.autoBlock.getValue() == 2 || this.autoBlock.getValue() == 3 || this.autoBlock.getValue() == 5 || this.autoBlock.getValue() == 6 || this.autoBlock.getValue() == 7);
+            return !mc.thePlayer.isInWater() && !mc.thePlayer.isInLava() && (this.autoBlock.getValue() == 2 || this.autoBlock.getValue() == 3 || this.autoBlock.getValue() == 4 || this.autoBlock.getValue() == 6);
         } else {
             return false;
         }
@@ -499,49 +492,6 @@ public class KillAura extends Module {
                                 if (!Myau.playerStateManager.digging && !Myau.playerStateManager.placing) {
                                     switch (this.blockTick) {
                                         case 0:
-                                            if (!this.isPlayerBlocking()) {
-                                                swap = true;
-                                            }
-                                            this.blockTick = 1;
-                                            break;
-                                        case 1:
-                                            if (this.isPlayerBlocking()) {
-                                                this.stopBlock();
-                                                attack = false;
-                                            }
-                                            if (this.attackDelayMS <= 50L) {
-                                                this.blockTick = 0;
-                                            }
-                                            break;
-                                        default:
-                                            this.blockTick = 0;
-                                    }
-                                }
-                                Myau.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
-                                this.isBlocking = true;
-                                this.fakeBlockState = false;
-                            } else {
-                                Myau.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
-                                this.isBlocking = false;
-                                this.fakeBlockState = false;
-                            }
-                            break;
-                        case 4:
-                            Myau.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
-                            this.isBlocking = false;
-                            this.fakeBlockState = this.hasValidTarget();
-                            if (PlayerUtil.isUsingItem()
-                                    && !this.isPlayerBlocking()
-                                    && !Myau.playerStateManager.digging
-                                    && !Myau.playerStateManager.placing) {
-                                swap = true;
-                            }
-                            break;
-                        case 5:
-                            if (this.hasValidTarget()) {
-                                if (!Myau.playerStateManager.digging && !Myau.playerStateManager.placing) {
-                                    switch (this.blockTick) {
-                                        case 0:
                                             blocked = true;
                                             if (!this.isPlayerBlocking()) {
                                                 swap = true;
@@ -583,6 +533,49 @@ public class KillAura extends Module {
                                 PacketUtil.sendPacket(new C09PacketHeldItemChange(mc.thePlayer.inventory.currentItem));
                                 this.isBlocking = false;
                                 this.fakeBlockState = false;
+                            }
+                            break;
+                        case 4:
+                            if (this.hasValidTarget()) {
+                                if (!Myau.playerStateManager.digging && !Myau.playerStateManager.placing) {
+                                    switch (this.blockTick) {
+                                        case 0:
+                                            if (!this.isPlayerBlocking()) {
+                                                swap = true;
+                                            }
+                                            this.blockTick = 1;
+                                            break;
+                                        case 1:
+                                            if (this.isPlayerBlocking()) {
+                                                this.stopBlock();
+                                                attack = false;
+                                            }
+                                            if (this.attackDelayMS <= 50L) {
+                                                this.blockTick = 0;
+                                            }
+                                            break;
+                                        default:
+                                            this.blockTick = 0;
+                                    }
+                                }
+                                Myau.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
+                                this.isBlocking = true;
+                                this.fakeBlockState = false;
+                            } else {
+                                Myau.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
+                                this.isBlocking = false;
+                                this.fakeBlockState = false;
+                            }
+                            break;
+                        case 5:
+                            Myau.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
+                            this.isBlocking = false;
+                            this.fakeBlockState = this.hasValidTarget();
+                            if (PlayerUtil.isUsingItem()
+                                    && !this.isPlayerBlocking()
+                                    && !Myau.playerStateManager.digging
+                                    && !Myau.playerStateManager.placing) {
+                                swap = true;
                             }
                             break;
                         case 6:
@@ -949,7 +942,7 @@ public class KillAura extends Module {
     @Override
     public void onDisabled() {
         Myau.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
-        if ((this.autoBlock.getValue() == 2 || this.autoBlock.getValue() == 5 || this.autoBlock.getValue() == 6) && Myau.moduleManager.getModule(NoSlow.class).isEnabled()){
+        if ((this.autoBlock.getValue() == 2 || this.autoBlock.getValue() == 3 || this.autoBlock.getValue() == 6) && Myau.moduleManager.getModule(NoSlow.class).isEnabled()){
             int randomSlot = new Random().nextInt(9);
             while (randomSlot == mc.thePlayer.inventory.currentItem) {
                 randomSlot = new Random().nextInt(9);

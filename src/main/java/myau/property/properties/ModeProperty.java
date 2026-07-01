@@ -63,6 +63,10 @@ public class ModeProperty extends Property<Integer> {
         this.setValue(next);
     }
 
+    public String[] getModes() {
+        return modes;
+    }
+
     public void previousMode() {
         int current = this.getValue();
         int prev = current - 1;

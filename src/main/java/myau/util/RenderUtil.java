@@ -623,4 +623,37 @@ public class RenderUtil {
         GlStateManager.disableBlend();
         GlStateManager.resetColor();
     }
+
+    public static Framebuffer createFrameBuffer(Framebuffer framebuffer, boolean depth) {
+        if (framebuffer == null || framebuffer.framebufferWidth != mc.displayWidth || framebuffer.framebufferHeight != mc.displayHeight) {
+            if (framebuffer != null) {
+                framebuffer.deleteFramebuffer();
+            }
+            framebuffer = new Framebuffer(mc.displayWidth, mc.displayHeight, depth);
+            framebuffer.setFramebufferFilter(GL11.GL_LINEAR);
+        }
+        return framebuffer;
+    }
+
+    public static void setAlphaLimit(float limit) {
+        GlStateManager.enableAlpha();
+        GL11.glAlphaFunc(GL11.GL_GREATER, limit);
+    }
+
+    public static void bindTexture(int texture) {
+        GlStateManager.bindTexture(texture);
+    }
+
+    public static void drawQuads() {
+        GL11.glBegin(GL11.GL_QUADS);
+        GL11.glTexCoord2f(0, 0);
+        GL11.glVertex2f(0, 0);
+        GL11.glTexCoord2f(0, 1);
+        GL11.glVertex2f(0, mc.displayHeight);
+        GL11.glTexCoord2f(1, 1);
+        GL11.glVertex2f(mc.displayWidth, mc.displayHeight);
+        GL11.glTexCoord2f(1, 0);
+        GL11.glVertex2f(mc.displayWidth, 0);
+        GL11.glEnd();
+    }
 }
