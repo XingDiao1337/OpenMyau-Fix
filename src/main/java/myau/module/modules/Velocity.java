@@ -34,6 +34,8 @@ public class Velocity extends Module {
     private boolean pendingExplosion = false;
     private boolean allowNext = true;
     private boolean jumpFlag = false;
+    private boolean shouldJump = false;
+    private int jumpCooldown = 0;
 
     private int rotatoTickCounter = 0;
     private double knockbackX = 0;
@@ -45,9 +47,6 @@ public class Velocity extends Module {
     private int ticksSinceVelocity = -1;
     public static boolean extraAttacked = false;
     public static boolean velocityAttacked = false;
-
-    private boolean shouldJump = false;
-    private int jumpCooldown = 0;
 
     private int slapReduceTicks = 0;
     private int slapAnInt = 0;
@@ -70,21 +69,33 @@ public class Velocity extends Module {
     public final IntProperty attackTimes = new IntProperty("attack-times", 1, 1, 5, () -> mode.getValue() == 2 && reduce.getValue());
     private final BooleanProperty onlySprinting = new BooleanProperty("only-sprinting", true, () -> mode.getValue() == 2 && reduce.getValue());
     private final BooleanProperty reduceWhenCanAttack = new BooleanProperty("reduce-when-can-attack", true, () -> mode.getValue() == 2 && reduce.getValue());
-    public final BooleanProperty jump = new BooleanProperty("jump", true, () -> mode.getValue() == 2);
+    public final BooleanProperty hypixelJump = new BooleanProperty("jump", true, () -> mode.getValue() == 2);
     public final BooleanProperty rotate = new BooleanProperty("rotate", false, () -> mode.getValue() == 2);
     public final IntProperty rotateTick = new IntProperty("rotate-ticks", 3, 1, 12, () -> mode.getValue() == 2 && rotate.getValue());
 
-    public final BooleanProperty slapReduce = new BooleanProperty("attack-reduce", true, () -> mode.getValue() == 3);
+    public final BooleanProperty slapReduce = new BooleanProperty("reduce", true, () -> mode.getValue() == 3);
+    public final BooleanProperty tickExactEnable = new BooleanProperty("tickExact", true, () -> mode.getValue() == 3);
+    public final IntProperty tick500 = new IntProperty("500", 3, 0, 20, () -> mode.getValue() == 3);
+    public final IntProperty tick1000 = new IntProperty("1000", 4, 0, 20, () -> mode.getValue() == 3);
+    public final IntProperty tick2000 = new IntProperty("2000", 4, 0, 20, () -> mode.getValue() == 3);
+    public final IntProperty tick3000 = new IntProperty("3000", 5, 0, 20, () -> mode.getValue() == 3);
+    public final IntProperty tick4000 = new IntProperty("4000", 6, 0, 20, () -> mode.getValue() == 3);
+    public final IntProperty tick5000 = new IntProperty("5000", 6, 0, 20, () -> mode.getValue() == 3);
+    public final IntProperty tick6000 = new IntProperty("6000", 7, 0, 20, () -> mode.getValue() == 3);
+    public final IntProperty tick7000 = new IntProperty("7000", 7, 0, 20, () -> mode.getValue() == 3);
+    public final IntProperty tick8000 = new IntProperty("8000", 8, 0, 20, () -> mode.getValue() == 3);
+    public final IntProperty tick9000 = new IntProperty("9000", 8, 0, 20, () -> mode.getValue() == 3);
+    public final IntProperty tick10000 = new IntProperty("10000", 9, 0, 20, () -> mode.getValue() == 3);
 
     public final BooleanProperty fakeCheck = new BooleanProperty("fake-check", true);
     public final BooleanProperty debugLog = new BooleanProperty("debug-log", false);
 
-    private boolean isInLiquidOrWeb() {
-        return mc.thePlayer.isInWater() || mc.thePlayer.isInLava() || ((IAccessorEntity) mc.thePlayer).getIsInWeb();
-    }
-
     public Velocity() {
         super("Velocity", false);
+    }
+
+    private boolean isInLiquidOrWeb() {
+        return mc.thePlayer.isInWater() || mc.thePlayer.isInLava() || ((IAccessorEntity) mc.thePlayer).getIsInWeb();
     }
 
     @EventTarget
@@ -149,14 +160,10 @@ public class Velocity extends Module {
 
     @EventTarget
     public void onTick(TickEvent event) {
-        if (!this.isEnabled()) return;
+        if (!this.isEnabled() || event.getType() != EventType.PRE) return;
 
-        if (this.mode.getValue() == 2 && this.jump.getValue()) {
+        if (this.mode.getValue() == 2 && this.hypixelJump.getValue()) {
             this.handleJumpReset();
-        }
-
-        if (this.mode.getValue() == 0) {
-            return;
         }
 
         if (this.ticksSinceVelocity >= 0) {
@@ -371,9 +378,9 @@ public class Velocity extends Module {
                         this.ticksSinceVelocity = 0;
                     }
                     if (this.mode.getValue() == 3 && this.slapReduce.getValue()) {
-                        this.slapReduceTicks = 3;
+                        this.slapReduceTicks = this.calculateSlapTicks(packet.getMotionX(), packet.getMotionZ());
                         if (this.debugLog.getValue()) {
-                            ChatUtil.sendFormatted(Myau.clientName + "Attack reduceTicks: 3");
+                            ChatUtil.sendFormatted(Myau.clientName + "SlapAttack reduceTicks: " + this.slapReduceTicks);
                         }
                     }
                     if (this.debugLog.getValue()) {
@@ -399,6 +406,28 @@ public class Velocity extends Module {
                 }
             }
         }
+    }
+
+    private int calculateSlapTicks(int motionX, int motionZ) {
+        double kb = Math.hypot(motionX, motionZ);
+        if (!tickExactEnable.getValue()) {
+            double ticks = 6.43153527E-4 * kb + 2.9419087136;
+            int result = (int) Math.round(ticks);
+            if (result < 1) result = 1;
+            if (result > 10) result = 10;
+            return result;
+        }
+        if (kb <= 500) return tick500.getValue();
+        if (kb <= 1000) return tick1000.getValue();
+        if (kb <= 2000) return tick2000.getValue();
+        if (kb <= 3000) return tick3000.getValue();
+        if (kb <= 4000) return tick4000.getValue();
+        if (kb <= 5000) return tick5000.getValue();
+        if (kb <= 6000) return tick6000.getValue();
+        if (kb <= 7000) return tick7000.getValue();
+        if (kb <= 8000) return tick8000.getValue();
+        if (kb <= 9000) return tick9000.getValue();
+        return tick10000.getValue();
     }
 
     private boolean badPackets() {
