@@ -7,6 +7,8 @@ Based on OpenMyau-20250910
 
 Fixed the original issues in OpenMyau and added new bypasses(All Skid and AI Code)
 
+Dicord: https://discord.gg/pRAtANFWSR
+
 ```
 If you think this is a piece of shit, then you're right.
 
