@@ -65,6 +65,7 @@ public class Myau {
         moduleManager.modules.put(AntiFireball.class, new AntiFireball());
         moduleManager.modules.put(AntiObbyTrap.class, new AntiObbyTrap());
         moduleManager.modules.put(AntiObfuscate.class, new AntiObfuscate());
+        moduleManager.modules.put(FontManager.class, new FontManager());
         moduleManager.modules.put(Notifications.class, new Notifications());
         moduleManager.modules.put(AntiVoid.class, new AntiVoid());
         moduleManager.modules.put(AutoClicker.class, new AutoClicker());
@@ -119,6 +120,7 @@ public class Myau {
         moduleManager.modules.put(FlagDetector.class, new FlagDetector());
         moduleManager.modules.put(Stasis.class, new Stasis());
         moduleManager.modules.put(ChestAura.class, new ChestAura());
+        moduleManager.modules.put(Clutch.class, new Clutch());
         moduleManager.modules.put(Spammer.class, new Spammer());
         moduleManager.modules.put(Speed.class, new Speed());
         moduleManager.modules.put(SpeedMine.class, new SpeedMine());
