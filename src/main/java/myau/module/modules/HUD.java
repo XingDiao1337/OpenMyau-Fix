@@ -28,6 +28,9 @@ import java.util.stream.Collectors;
 public class HUD extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
     private List<Module> activeModules = new ArrayList<>();
+
+    /** Custom text set via .text command, rendered at the top of the HUD list. */
+    public static String customText = null;
     public final ModeProperty colorMode = new ModeProperty(
             "color", 3, new String[]{"RAINBOW", "CHROMA", "ASTOLFO", "CUSTOM1", "CUSTOM12", "CUSTOM123"}
     );
@@ -77,10 +80,10 @@ public class HUD extends Module {
     }
 
     private int calculateStringWidth(String string, String[] arr) {
-        int width = mc.fontRendererObj.getStringWidth(string);
+        int width = FontManager.getFontRenderer().getStringWidth(string);
         if (this.suffixes.getValue()) {
             for (String str : arr) {
-                width += 3 + mc.fontRendererObj.getStringWidth(str);
+                width += 3 + FontManager.getFontRenderer().getStringWidth(str);
             }
         }
         return width;
@@ -169,7 +172,7 @@ public class HUD extends Module {
             }
         }
         if (this.isEnabled() && !mc.gameSettings.showDebugInfo) {
-            float height = (float) mc.fontRendererObj.FONT_HEIGHT - 1.0F;
+            float height = (float) FontManager.getFontRenderer().FONT_HEIGHT - 1.0F;
             float x = (float) this.offsetX.getValue()
                     + (1.0F + (this.showBar.getValue() ? (this.shadow.getValue() ? 2.0F : 1.0F) : 0.0F)) * this.scale.getValue();
             float y = (float) this.offsetY.getValue() + 1.0F * this.scale.getValue();
@@ -183,6 +186,19 @@ public class HUD extends Module {
             GlStateManager.scale(this.scale.getValue(), this.scale.getValue(), 0.0F);
             long l = System.currentTimeMillis();
             long offset = 0L;
+
+            // ── Custom text at top of HUD ──
+            if (customText != null && !customText.isEmpty()) {
+                GlStateManager.disableDepth();
+                FontManager.getFontRenderer().drawStringWithShadow(
+                        customText,
+                        x / this.scale.getValue() - (this.posX.getValue() == 1 ? (float) FontManager.getFontRenderer().getStringWidth(customText) : 0.0F),
+                        y / this.scale.getValue(),
+                        0xFFFFFFFF);
+                y += (height + (this.shadow.getValue() ? 1.0F : 0.0F)) * this.scale.getValue() * (this.posY.getValue() == 0 ? 1.0F : -1.0F);
+                offset++;
+            }
+
             for (Module module : this.activeModules) {
                 String moduleName = this.getModuleName(module);
                 String[] moduleSuffix = this.getModuleSuffix(module);
@@ -227,10 +243,10 @@ public class HUD extends Module {
                 RenderUtil.disableRenderState();
                 GlStateManager.disableDepth();
                 if (this.shadow.getValue()) {
-                    mc.fontRendererObj
+                    FontManager.getFontRenderer()
                             .drawStringWithShadow(moduleName, x / this.scale.getValue() - (this.posX.getValue() == 1 ? totalWidth : 0.0F), y / this.scale.getValue(), color);
                 } else {
-                    mc.fontRendererObj
+                    FontManager.getFontRenderer()
                             .drawString(
                                     moduleName,
                                     x / this.scale.getValue() - (this.posX.getValue() == 1 ? totalWidth : 0.0F),
@@ -240,10 +256,10 @@ public class HUD extends Module {
                             );
                 }
                 if (this.suffixes.getValue() && moduleSuffix.length > 0) {
-                    float width = (float) mc.fontRendererObj.getStringWidth(moduleName) + 3.0F;
+                    float width = (float) FontManager.getFontRenderer().getStringWidth(moduleName) + 3.0F;
                     for (String string : moduleSuffix) {
                         if (this.shadow.getValue()) {
-                            mc.fontRendererObj
+                            FontManager.getFontRenderer()
                                     .drawStringWithShadow(
                                             string,
                                             x / this.scale.getValue() - (this.posX.getValue() == 1 ? totalWidth : 0.0F) + width,
@@ -251,7 +267,7 @@ public class HUD extends Module {
                                             ChatColors.GRAY.toAwtColor()
                                     );
                         } else {
-                            mc.fontRendererObj
+                            FontManager.getFontRenderer()
                                     .drawString(
                                             string,
                                             x / this.scale.getValue() - (this.posX.getValue() == 1 ? totalWidth : 0.0F) + width,
@@ -260,7 +276,7 @@ public class HUD extends Module {
                                             false
                                     );
                         }
-                        width += (float) mc.fontRendererObj.getStringWidth(string) + (this.shadow.getValue() ? 3.0F : 2.0F);
+                        width += (float) FontManager.getFontRenderer().getStringWidth(string) + (this.shadow.getValue() ? 3.0F : 2.0F);
                     }
                 }
                 y += (height + (this.shadow.getValue() ? 1.0F : 0.0F)) * this.scale.getValue() * (this.posY.getValue() == 0 ? 1.0F : -1.0F);
@@ -273,11 +289,11 @@ public class HUD extends Module {
                     if (movementPacketSize > 0L) {
                         GlStateManager.enableBlend();
                         GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-                        mc.fontRendererObj
+                        FontManager.getFontRenderer()
                                 .drawString(
                                         String.valueOf(movementPacketSize),
                                         (float) new ScaledResolution(mc).getScaledWidth() / 2.0F / this.scale.getValue()
-                                                - (float) mc.fontRendererObj.getStringWidth(String.valueOf(movementPacketSize)) / 2.0F,
+                                                - (float) FontManager.getFontRenderer().getStringWidth(String.valueOf(movementPacketSize)) / 2.0F,
                                         (float) new ScaledResolution(mc).getScaledHeight() / 5.0F * 3.0F / this.scale.getValue(),
                                         this.getColor(l, offset).getRGB() & 16777215 | -1090519040,
                                         this.shadow.getValue()
