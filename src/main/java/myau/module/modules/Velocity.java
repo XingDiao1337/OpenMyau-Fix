@@ -34,8 +34,6 @@ public class Velocity extends Module {
     private boolean pendingExplosion = false;
     private boolean allowNext = true;
     private boolean jumpFlag = false;
-    private boolean shouldJump = false;
-    private int jumpCooldown = 0;
 
     private int rotatoTickCounter = 0;
     private double knockbackX = 0;
@@ -48,6 +46,8 @@ public class Velocity extends Module {
     public static boolean extraAttacked = false;
     public static boolean velocityAttacked = false;
 
+    private boolean ShouldJump = false;
+
     private int slapReduceTicks = 0;
     private int slapAnInt = 0;
     private boolean slot = false;
@@ -59,11 +59,11 @@ public class Velocity extends Module {
 
     public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"Vanilla", "Jump", "Hypixel", "Slap_Attack"});
 
-    public final PercentProperty chance = new PercentProperty("chance", 100, () -> mode.getValue() == 0);
-    public final PercentProperty horizontal = new PercentProperty("horizontal", 0, () -> mode.getValue() == 0);
-    public final PercentProperty vertical = new PercentProperty("vertical", 100, () -> mode.getValue() == 0);
-    public final PercentProperty explosionHorizontal = new PercentProperty("explosions-horizontal", 100, () -> mode.getValue() == 0);
-    public final PercentProperty explosionVertical = new PercentProperty("explosions-vertical", 100, () -> mode.getValue() == 0);
+    public final PercentProperty chance = new PercentProperty("chance", 100, () -> mode.getValue() <= 1);
+    public final PercentProperty horizontal = new PercentProperty("horizontal", 0, () -> mode.getValue() <= 1);
+    public final PercentProperty vertical = new PercentProperty("vertical", 100, () -> mode.getValue() <= 1);
+    public final PercentProperty explosionHorizontal = new PercentProperty("explosions-horizontal", 100, () -> mode.getValue() <= 1);
+    public final PercentProperty explosionVertical = new PercentProperty("explosions-vertical", 100, () -> mode.getValue() <= 1);
 
     public final BooleanProperty reduce = new BooleanProperty("reduce", true, () -> mode.getValue() == 2);
     public final IntProperty attackTimes = new IntProperty("attack-times", 1, 1, 5, () -> mode.getValue() == 2 && reduce.getValue());
@@ -109,7 +109,7 @@ public class Velocity extends Module {
         if (!this.allowNext || !this.fakeCheck.getValue()) {
             this.allowNext = true;
             if (this.pendingExplosion) {
-                if (this.mode.getValue() == 0) {
+                if (this.mode.getValue() <= 1) {
                     this.pendingExplosion = false;
                     if (this.explosionHorizontal.getValue() > 0) {
                         event.setX(event.getX() * (double) this.explosionHorizontal.getValue() / 100.0);
@@ -125,9 +125,13 @@ public class Velocity extends Module {
                     }
                 }
             } else {
-                if (this.mode.getValue() == 0) {
+                if (this.mode.getValue() <= 1) {
                     this.chanceCounter = (this.chanceCounter % 100) + this.chance.getValue();
                     if (this.chanceCounter >= 100) {
+                        if (this.mode.getValue() == 1) {
+                            this.jumpFlag = event.getY() > 0.0;
+                        }
+
                         if (this.horizontal.getValue() > 0) {
                             event.setX(event.getX() * (double) this.horizontal.getValue() / 100.0);
                             event.setZ(event.getZ() * (double) this.horizontal.getValue() / 100.0);
@@ -141,8 +145,6 @@ public class Velocity extends Module {
                             event.setY(mc.thePlayer.motionY);
                         }
                     }
-                } else if (this.mode.getValue() == 1) {
-                    this.jumpFlag = true;
                 } else if (this.mode.getValue() == 2) {
                     if (this.rotate.getValue() && event.getY() > 0.0) {
                         this.knockbackX = event.getX();
@@ -162,19 +164,18 @@ public class Velocity extends Module {
     public void onTick(TickEvent event) {
         if (!this.isEnabled() || event.getType() != EventType.PRE) return;
 
-        if (this.mode.getValue() == 2 && this.hypixelJump.getValue()) {
-            this.handleJumpReset();
-        }
-
         if (this.ticksSinceVelocity >= 0) {
             this.ticksSinceVelocity++;
         }
         if (this.ticksSinceVelocity >= 10) {
             this.ticksSinceVelocity = -1;
+            this.ShouldJump = false;
         }
     }
 
     private void handleJumpReset() {
+        if (!this.ShouldJump) return;
+
         Scaffold scaffold = (Scaffold) Myau.moduleManager.getModule(Scaffold.class);
         if (mc.thePlayer == null || mc.currentScreen instanceof GuiInventory || scaffold.isEnabled()) return;
         if (this.ticksSinceVelocity >= 0) {
@@ -192,7 +193,11 @@ public class Velocity extends Module {
 
     @EventTarget
     public void onLivingUpdate(LivingUpdateEvent event) {
-        if (this.isEnabled() && this.jumpFlag && this.mode.getValue() == 1) {
+        // 加上对 Mode 2 且开启了 hypixelJump 选项的判断
+        boolean isMode1 = this.mode.getValue() == 1;
+        boolean isMode2Jump = this.mode.getValue() == 2 && this.hypixelJump.getValue();
+
+        if (this.isEnabled() && this.jumpFlag && (isMode1 || isMode2Jump)) {
             this.jumpFlag = false;
             if (mc.thePlayer.onGround && mc.thePlayer.isSprinting() && !mc.thePlayer.isPotionActive(Potion.jump) && !this.isInLiquidOrWeb()) {
                 mc.thePlayer.movementInput.jump = true;
@@ -229,10 +234,8 @@ public class Velocity extends Module {
                         if (killAura.getTarget() != null) {
                             if (mc.thePlayer.isSprinting() || !this.onlySprinting.getValue()) {
                                 if (!this.reduceWhenCanAttack.getValue()
-                                        || (killAura.blockTick == 0 && killAura.autoBlock.getValue() == 2)
-                                        || (killAura.autoBlock.getValue() == 6 && killAura.blockTick == killAura.attackTick.getValue())
-                                        || (killAura.autoBlock.getValue() != 6 && killAura.autoBlock.getValue() != 2)
-                                        || (killAura.autoBlock.getValue() == 5 && killAura.blockTick == 0)) {
+                                        || (killAura.blockTick == 0 && killAura.autoBlock.getValue() == 4)
+                                        || (killAura.autoBlock.getValue() == 3 && killAura.blockTick == 0)) {
                                     EventManager.call(new AttackEvent(killAura.getTarget()));
                                     mc.getNetHandler().addToSendQueue(new C0APacketAnimation());
                                     mc.getNetHandler().addToSendQueue(new C02PacketUseEntity(killAura.getTarget(), C02PacketUseEntity.Action.ATTACK));
@@ -272,26 +275,6 @@ public class Velocity extends Module {
             }
         }
 
-        if (event.getType() == EventType.POST && this.mode.getValue() == 1) {
-            int hurtTime = mc.thePlayer.hurtTime;
-            if (hurtTime >= 8) {
-                if (jumpCooldown <= 0) {
-                    shouldJump = true;
-                    jumpCooldown = 2;
-                }
-            } else if (hurtTime <= 1) {
-                shouldJump = false;
-                jumpCooldown = 0;
-            }
-            if (shouldJump && mc.thePlayer.onGround && jumpCooldown <= 0) {
-                mc.thePlayer.jump();
-                shouldJump = false;
-            }
-            if (jumpCooldown > 0) {
-                jumpCooldown--;
-            }
-        }
-
         if (this.mode.getValue() == 3 && this.slapReduce.getValue() && event.getType() == EventType.PRE) {
             if (this.slapReduceTicks > 0) {
                 this.slapReduceTicks--;
@@ -307,7 +290,7 @@ public class Velocity extends Module {
                         mc.thePlayer.setSprinting(false);
                         this.slapAnInt++;
                         if (this.debugLog.getValue()) {
-                            ChatUtil.sendFormatted(Myau.clientName + "SlapAttack reduce " + this.slapAnInt);
+                            ChatUtil.sendFormatted(Myau.clientName + "Attack reduce " + this.slapAnInt);
                         }
                     }
                 }
@@ -346,7 +329,7 @@ public class Velocity extends Module {
         }
 
         if (event.getType() == EventType.RECEIVE) {
-            if (this.mode.getValue() == 0) {
+            if (this.mode.getValue() == 0 || this.mode.getValue() == 1) {
                 if (event.getPacket() instanceof S27PacketExplosion) {
                     S27PacketExplosion packet = (S27PacketExplosion) event.getPacket();
                     if (packet.func_149149_c() != 0.0F || packet.func_149144_d() != 0.0F || packet.func_149147_e() != 0.0F) {
@@ -373,14 +356,17 @@ public class Velocity extends Module {
             if (event.getPacket() instanceof S12PacketEntityVelocity) {
                 S12PacketEntityVelocity packet = (S12PacketEntityVelocity) event.getPacket();
                 if (packet.getEntityID() == mc.thePlayer.getEntityId()) {
+
                     if (this.mode.getValue() == 2) {
                         this.hasReceivedVelocity = true;
                         this.ticksSinceVelocity = 0;
+                        this.jumpFlag = packet.getMotionY() > 0;
                     }
+
                     if (this.mode.getValue() == 3 && this.slapReduce.getValue()) {
                         this.slapReduceTicks = this.calculateSlapTicks(packet.getMotionX(), packet.getMotionZ());
                         if (this.debugLog.getValue()) {
-                            ChatUtil.sendFormatted(Myau.clientName + "SlapAttack reduceTicks: " + this.slapReduceTicks);
+                            ChatUtil.sendFormatted(Myau.clientName + "Attack reduceTicks: " + this.slapReduceTicks);
                         }
                     }
                     if (this.debugLog.getValue()) {
@@ -471,8 +457,8 @@ public class Velocity extends Module {
         this.ticksSinceVelocity = -1;
         extraAttacked = false;
         velocityAttacked = false;
-        this.shouldJump = false;
-        this.jumpCooldown = 0;
+        this.jumpFlag = false;
+        this.ShouldJump = false;
         this.slapReduceTicks = 0;
         this.slapAnInt = 0;
         this.resetBadPackets();
@@ -491,8 +477,8 @@ public class Velocity extends Module {
         this.ticksSinceVelocity = -1;
         extraAttacked = false;
         velocityAttacked = false;
-        this.shouldJump = false;
-        this.jumpCooldown = 0;
+        this.jumpFlag = false;
+        this.ShouldJump = false;
         this.slapReduceTicks = 0;
         this.slapAnInt = 0;
         this.resetBadPackets();
@@ -500,7 +486,7 @@ public class Velocity extends Module {
 
     @Override
     public String[] getSuffix() {
-        if (this.mode.getValue() == 0) {
+        if (this.mode.getValue() <= 1) {
             return new String[]{
                     String.format("%d%%", this.horizontal.getValue()),
                     String.format("%d%%", this.vertical.getValue())

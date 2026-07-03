@@ -159,4 +159,5 @@ public abstract class MixinMinecraft {
             inventoryPlayer.changeCurrentItem(slot);
         }
     }
+    
 }

@@ -194,6 +194,6 @@ public class NoSlow extends Module {
 
     @Override
     public String[] getSuffix() {
-        return new String[]{CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.UPPER_CAMEL, this.swordMode.getModeString())};
+        return new String[]{swordMotion.getValue() + "%"};
     }
 }
